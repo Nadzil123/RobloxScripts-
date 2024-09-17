@@ -1,0 +1,15 @@
+local Library = loadstring(Game:HttpGet("https://raw.githubusercontent.com/bloodball/-back-ups-for-libs/main/wizard"))()
+
+local PhantomForcesWindow = Library:NewWindow("Killer Hub")
+
+local Cheats = PhantomForcesWindow:NewSection("WalkSpeed")
+
+Cheats:CreateTextbox("Speed", function(Value)
+game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
+end)
+
+local Cheats = PhantomForcesWindow:NewSection("JumpPower")
+
+Cheats:CreateTextbox("Jump", function(Value)
+game.Players.LocalPlayer.Character.Humanoid.JumpPower = Value
+end)
