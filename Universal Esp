@@ -1,0 +1,661 @@
+-- Universal ESP with Through-Wall Highlights, Box ESP, and Enhanced Player Detection
+-- Works with most executors
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+-- ESP Storage
+local ESPObjects = {}
+local HighlightObjects = {}
+local PlayerInGame = {} -- Enhanced player detection system
+
+-- Settings
+_G.ESPEnabled = true
+_G.ESPShowName = true
+_G.ESPShowHealth = true
+_G.ESPShowTracer = true
+_G.ESPShowBox = true
+_G.ESPBoxWidth = 1.2 -- Adjust box width (smaller value = narrower box)
+_G.ESPMaxDistance = 3000 -- Extended distance for better visibility
+_G.HighlightEnabled = true
+_G.HighlightColor = Color3.fromRGB(255, 105, 180)
+_G.HighlightTransparency = 0.7 -- Increased transparency (0.7 instead of 0.3)
+_G.HighlightOutlineTransparency = 0.4 -- More transparent outline
+_G.HighlightTeammates = true -- Show highlights for teammates too
+_G.TeamBasedColor = true -- Use team colors for ESP
+_G.PlayerDetection = true -- Enable enhanced player detection system
+_G.RefreshRate = 2 -- Check player presence every X seconds (faster refresh)
+
+-- Check Drawing API
+local canUseDrawing = pcall(function() return Drawing ~= nil end)
+if not canUseDrawing then
+    warn("Drawing library not available! ESP features will be limited.")
+end
+
+-- Check Highlight availability
+local canUseHighlight = pcall(function() return Instance.new("Highlight") end)
+if not canUseHighlight then
+    warn("Highlight feature not available! Using alternative ESP method.")
+end
+
+-- Cleanup
+for _, v in pairs(ESPObjects) do
+    for _, obj in pairs(v) do
+        pcall(function() obj:Remove() end)
+    end
+end
+ESPObjects = {}
+
+for _, v in pairs(HighlightObjects) do
+    if v.Highlight then v.Highlight:Destroy() end
+end
+HighlightObjects = {}
+
+for _, obj in pairs(workspace:GetChildren()) do
+    if obj:IsA("Highlight") and obj.Name == "ESPHighlight" then
+        obj:Destroy()
+    end
+end
+
+-- Helpers
+local function isAlive(player)
+    local char = player.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+    return char and hum and hum.Health > 0
+end
+
+local function getTeamColor(player)
+    if player.Team and player.TeamColor then
+        return player.TeamColor.Color
+    end
+    return Color3.fromRGB(255, 0, 0)
+end
+
+-- Advanced team color detection (works in various games)
+local function getAdvancedTeamColor(player)
+    -- Default color (in case no team is detected)
+    local defaultColor = Color3.new(1, 0, 0) -- Red for enemies
+    
+    -- Try multiple methods to detect team
+    -- Method 1: Standard Team property
+    if player.Team and LocalPlayer.Team then
+        if player.Team == LocalPlayer.Team then
+            -- Use actual team color instead of hardcoded green
+            return player.TeamColor.Color or player.Team.TeamColor.Color or defaultColor
+        else
+            return player.TeamColor.Color or defaultColor
+        end
+    end
+    
+    -- Method 2: Check for team values in character
+    local char = player.Character
+    if char then
+        -- Many games store team value in the character model
+        local teamValue = char:FindFirstChild("Team")
+        if teamValue and (teamValue:IsA("StringValue") or teamValue:IsA("NumberValue")) then
+            -- Compare with local player's team value
+            local myChar = LocalPlayer.Character
+            local myTeamValue = myChar and myChar:FindFirstChild("Team")
+            
+            if teamValue and myTeamValue and teamValue.Value == myTeamValue.Value then
+                -- Try to get team color from various possible locations
+                local teamColorObj = char:FindFirstChild("TeamColor") or player:FindFirstChild("TeamColor")
+                if teamColorObj and teamColorObj:IsA("BrickColorValue") then
+                    return teamColorObj.Value.Color
+                elseif player.TeamColor then
+                    return player.TeamColor.Color
+                else
+                    -- Last resort - use a different color than enemy default to distinguish
+                    return Color3.fromRGB(0, 170, 255) -- Light blue as fallback for teammates
+                end
+            end
+        end
+        
+        -- Method 3: Check for common team indicators in various games
+        for _, v in pairs({"TeamColor", "TeamValue", "PlayerTeam", "TeamName"}) do
+            local val = char:FindFirstChild(v) or player:FindFirstChild(v)
+            if val then
+                -- If we have our own matching value, compare
+                local myVal = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild(v) or LocalPlayer:FindFirstChild(v)
+                if myVal and val.Value == myVal.Value then
+                    -- Try to extract color information
+                    if typeof(val.Value) == "BrickColor" then
+                        return val.Value.Color
+                    elseif val:FindFirstChild("Color") and val.Color:IsA("BrickColorValue") then
+                        return val.Color.Value.Color
+                    else
+                        -- Use team color if available or a different fallback
+                        return player.TeamColor and player.TeamColor.Color or Color3.fromRGB(0, 170, 255)
+                    end
+                end
+            end
+        end
+    end
+    
+    -- If we get here, likely an enemy
+    return defaultColor
+end
+
+local function isSameTeam(player)
+    return player.Team and LocalPlayer.Team and player.Team == LocalPlayer.Team
+end
+
+-- Enhanced player detection system
+local function updatePlayerDetection()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local wasInGame = PlayerInGame[player.UserId] or false
+            local isInGame = false
+            
+            -- Enhanced player detection using multiple methods
+            local char = player.Character
+            if char then
+                -- Check if character exists and has essential parts
+                local root = char:FindFirstChild("HumanoidRootPart")
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                
+                if root and hum and hum.Health > 0 then
+                    -- Check if player is within reasonable distance
+                    local distance = (Camera.CFrame.Position - root.Position).Magnitude
+                    if distance <= _G.ESPMaxDistance * 1.2 then -- Slightly larger range for detection
+                        isInGame = true
+                        
+                        -- Additional checks for better accuracy (game-specific)
+                        -- Check for common game-specific player state indicators
+                        local stateValue = player:FindFirstChild("PlayerState") or char:FindFirstChild("PlayerState")
+                        if stateValue and (stateValue.Value == "Dead" or stateValue.Value == "Spectating") then
+                            isInGame = false
+                        end
+                        
+                        -- Check for specific parts that might indicate player status
+                        local playerGui = player:FindFirstChildOfClass("PlayerGui")
+                        if playerGui and playerGui:FindFirstChild("SpectatorGui") then
+                            isInGame = false
+                        end
+                    end
+                end
+            end
+            
+            -- Store previous state for comparison
+            local previousState = PlayerInGame[player.UserId]
+            
+            -- Update detection state
+            PlayerInGame[player.UserId] = isInGame
+            
+            -- Only notify if status changed and avoid text notifications
+            if previousState ~= isInGame then
+                -- Instead of text, we'll update ESP visuals based on detection state
+                if isInGame then
+                    -- Player detected - use highlight effect color or intensity
+                    if HighlightObjects[player] and HighlightObjects[player].Highlight then
+                        -- Make highlight more visible when player is first detected
+                        local highlight = HighlightObjects[player].Highlight
+                        local originalTransparency = _G.HighlightTransparency
+                        
+                        -- Brief "pulse" effect on detection
+                        spawn(function()
+                            -- Quick pulse notification (subtle visual cue instead of text)
+                            for i = 1, 3 do
+                                highlight.FillTransparency = originalTransparency - 0.3 -- Brief flash
+                                wait(0.1)
+                                highlight.FillTransparency = originalTransparency
+                                wait(0.1)
+                            end
+                        end)
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Create ESP for player
+local function createESP(player)
+    if player == LocalPlayer then return end
+
+    ESPObjects[player] = {}
+    
+    -- Initialize player detection status
+    PlayerInGame[player.UserId] = false
+
+    if canUseDrawing then
+        local success = pcall(function()
+            -- Name ESP
+            ESPObjects[player].Name = Drawing.new("Text")
+            ESPObjects[player].Name.Size = 16 -- Larger text
+            ESPObjects[player].Name.Center = true
+            ESPObjects[player].Name.Outline = true
+            ESPObjects[player].Name.Visible = false
+
+            -- Health ESP
+            ESPObjects[player].Health = Drawing.new("Text")
+            ESPObjects[player].Health.Size = 14 -- Larger text
+            ESPObjects[player].Health.Center = true
+            ESPObjects[player].Health.Outline = true
+            ESPObjects[player].Health.Visible = false
+
+            -- Tracer ESP
+            ESPObjects[player].Tracer = Drawing.new("Line")
+            ESPObjects[player].Tracer.Thickness = 1.5 -- Thicker line
+            ESPObjects[player].Tracer.Transparency = 0.6 -- More visible
+            ESPObjects[player].Tracer.Visible = false
+            
+            -- Box ESP (4 lines to create a box)
+            ESPObjects[player].BoxTop = Drawing.new("Line")
+            ESPObjects[player].BoxTop.Thickness = 1.5
+            ESPObjects[player].BoxTop.Transparency = 1
+            ESPObjects[player].BoxTop.Visible = false
+            
+            ESPObjects[player].BoxBottom = Drawing.new("Line")
+            ESPObjects[player].BoxBottom.Thickness = 1.5
+            ESPObjects[player].BoxBottom.Transparency = 1
+            ESPObjects[player].BoxBottom.Visible = false
+            
+            ESPObjects[player].BoxLeft = Drawing.new("Line")
+            ESPObjects[player].BoxLeft.Thickness = 1.5
+            ESPObjects[player].BoxLeft.Transparency = 1
+            ESPObjects[player].BoxLeft.Visible = false
+            
+            ESPObjects[player].BoxRight = Drawing.new("Line")
+            ESPObjects[player].BoxRight.Thickness = 1.5
+            ESPObjects[player].BoxRight.Transparency = 1
+            ESPObjects[player].BoxRight.Visible = false
+        end)
+
+        if not success then
+            warn("Failed to create drawings for " .. player.Name)
+        end
+    end
+
+    if canUseHighlight then
+        HighlightObjects[player] = {}
+
+        local function setupHighlight(char)
+            if not char then return end
+            if HighlightObjects[player] and HighlightObjects[player].Highlight then
+                HighlightObjects[player].Highlight:Destroy()
+            end
+
+            -- Safety check
+            if not HighlightObjects[player] then
+                HighlightObjects[player] = {}
+            end
+
+            local h = Instance.new("Highlight")
+            h.Name = "ESPHighlight"
+            h.FillColor = getTeamColor(player)
+            h.OutlineColor = getTeamColor(player) -- Match team color
+            h.FillTransparency = _G.HighlightTransparency -- Much more transparent fill (0.7)
+            h.OutlineTransparency = _G.HighlightOutlineTransparency -- More transparent outline (0.4)
+            h.Adornee = char
+            h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            
+            -- Use the character itself as parent instead of workspace
+            h.Parent = char
+            
+            -- Apply enhanced rendering for better visibility through walls
+            pcall(function()
+                h.ZIndex = 5 -- Higher ZIndex for better render priority
+            end)
+
+            HighlightObjects[player].Highlight = h
+            HighlightObjects[player].Character = char
+        end
+
+        if player.Character then
+            setupHighlight(player.Character)
+        end
+
+        player.CharacterAdded:Connect(setupHighlight)
+    end
+end
+
+-- Remove ESP
+local function removeESP(player)
+    if ESPObjects[player] then
+        for _, v in pairs(ESPObjects[player]) do
+            pcall(function() v:Remove() end)
+        end
+        ESPObjects[player] = nil
+    end
+
+    if HighlightObjects[player] and HighlightObjects[player].Highlight then
+        pcall(function() HighlightObjects[player].Highlight:Destroy() end)
+    end
+    HighlightObjects[player] = nil
+    
+    -- Clean up player detection status
+    if player.UserId and PlayerInGame[player.UserId] ~= nil then
+        PlayerInGame[player.UserId] = nil
+    end
+end
+
+-- Init for existing players
+for _, p in pairs(Players:GetPlayers()) do
+    if p ~= LocalPlayer then
+        createESP(p)
+    end
+end
+
+Players.PlayerAdded:Connect(createESP)
+Players.PlayerRemoving:Connect(removeESP)
+
+-- Start enhanced player detection system
+spawn(function()
+    while wait(_G.RefreshRate) do
+        if _G.PlayerDetection then
+            pcall(updatePlayerDetection)
+        end
+    end
+end)
+
+-- Main ESP update loop
+RunService.RenderStepped:Connect(function()
+    pcall(function()
+        -- Early return if ESP is completely disabled
+        if not _G.ESPEnabled then
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and ESPObjects[player] then
+                    local esp = ESPObjects[player]
+                    -- Hide all ESP objects
+                    for _, obj in pairs(esp) do
+                        if obj.Visible ~= nil then
+                            obj.Visible = false
+                        end
+                    end
+                    
+                    -- Hide highlight
+                    if HighlightObjects[player] and HighlightObjects[player].Highlight then
+                        HighlightObjects[player].Highlight.Enabled = false
+                    end
+                end
+            end
+            return
+        end
+
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and ESPObjects[player] then
+                local char = player.Character
+                if not char then
+                    -- Hide ESP if character doesn't exist
+                    if ESPObjects[player].Name then ESPObjects[player].Name.Visible = false end
+                    if ESPObjects[player].Health then ESPObjects[player].Health.Visible = false end
+                    if ESPObjects[player].Tracer then ESPObjects[player].Tracer.Visible = false end
+                    if ESPObjects[player].BoxTop then ESPObjects[player].BoxTop.Visible = false end
+                    if ESPObjects[player].BoxBottom then ESPObjects[player].BoxBottom.Visible = false end
+                    if ESPObjects[player].BoxLeft then ESPObjects[player].BoxLeft.Visible = false end
+                    if ESPObjects[player].BoxRight then ESPObjects[player].BoxRight.Visible = false end
+                    if HighlightObjects[player] and HighlightObjects[player].Highlight then 
+                        HighlightObjects[player].Highlight.Enabled = false
+                    end
+                    continue
+                end
+
+                local root = char:FindFirstChild("HumanoidRootPart")
+                local head = char:FindFirstChild("Head")
+                local hum = char:FindFirstChildOfClass("Humanoid")
+
+                if not root or not hum or hum.Health <= 0 then
+                    -- Hide ESP if player is not alive
+                    if ESPObjects[player].Name then ESPObjects[player].Name.Visible = false end
+                    if ESPObjects[player].Health then ESPObjects[player].Health.Visible = false end
+                    if ESPObjects[player].Tracer then ESPObjects[player].Tracer.Visible = false end
+                    if ESPObjects[player].BoxTop then ESPObjects[player].BoxTop.Visible = false end
+                    if ESPObjects[player].BoxBottom then ESPObjects[player].BoxBottom.Visible = false end
+                    if ESPObjects[player].BoxLeft then ESPObjects[player].BoxLeft.Visible = false end
+                    if ESPObjects[player].BoxRight then ESPObjects[player].BoxRight.Visible = false end
+                    if HighlightObjects[player] and HighlightObjects[player].Highlight then 
+                        HighlightObjects[player].Highlight.Enabled = false
+                    end
+                    continue
+                end
+
+                local screenPos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                local distance = (Camera.CFrame.Position - root.Position).Magnitude
+
+                -- Check if in range but show through walls even when not on screen
+                local inRange = distance <= _G.ESPMaxDistance
+                local teamColor = getTeamColor(player)
+                
+                -- Check player detection status
+                local isDetected = PlayerInGame[player.UserId] or false
+                
+                -- Update highlight color and visibility first
+                if HighlightObjects[player] and HighlightObjects[player].Highlight and _G.HighlightEnabled and inRange then
+                    local hObj = HighlightObjects[player].Highlight
+                    
+                    -- Update color if character or team changed
+                    if HighlightObjects[player].Character ~= char then
+                        HighlightObjects[player].Character = char
+                        hObj.Adornee = char
+                    end
+                    
+                    -- Apply team check for highlights
+                    hObj.Enabled = (not isSameTeam(player) or _G.HighlightTeammates)
+                    
+                    -- Set fill and outline color based on team
+                    hObj.FillColor = _G.TeamBasedColor and teamColor or _G.HighlightColor
+                    hObj.OutlineColor = _G.TeamBasedColor and teamColor or _G.HighlightColor
+                    
+                    -- Dynamic transparency based on player detection
+                    if isDetected then
+                        -- More visible when player is recently detected
+                        -- This creates a subtle visual indicator without using text
+                        hObj.FillTransparency = _G.HighlightTransparency
+                        hObj.OutlineTransparency = _G.HighlightOutlineTransparency
+                    else
+                        -- Even more transparent when player hasn't been recently detected
+                        hObj.FillTransparency = _G.HighlightTransparency + 0.1
+                        hObj.OutlineTransparency = _G.HighlightOutlineTransparency + 0.1
+                    end
+                else
+                    if HighlightObjects[player] and HighlightObjects[player].Highlight then
+                        HighlightObjects[player].Highlight.Enabled = false
+                    end
+                end
+                
+                -- Hide 2D ESP elements if player is not on screen or out of range
+                if not onScreen or not inRange then
+                    if ESPObjects[player].Name then ESPObjects[player].Name.Visible = false end
+                    if ESPObjects[player].Health then ESPObjects[player].Health.Visible = false end
+                    if ESPObjects[player].Tracer then ESPObjects[player].Tracer.Visible = false end
+                    if ESPObjects[player].BoxTop then ESPObjects[player].BoxTop.Visible = false end
+                    if ESPObjects[player].BoxBottom then ESPObjects[player].BoxBottom.Visible = false end
+                    if ESPObjects[player].BoxLeft then ESPObjects[player].BoxLeft.Visible = false end
+                    if ESPObjects[player].BoxRight then ESPObjects[player].BoxRight.Visible = false end
+                    continue
+                end
+
+                -- Draw Name ESP
+                if ESPObjects[player].Name and _G.ESPShowName then
+                    local nameText = player.Name
+                    
+                    -- Instead of using "Online"/"Offline" text, modify the name appearance based on detection
+                    -- This provides detection status without explicit text
+                    if isDetected then
+                        -- For detected players, keep normal name
+                        ESPObjects[player].Name.Text = nameText
+                        ESPObjects[player].Name.Transparency = 0 -- Fully visible
+                    else
+                        -- For undetected players, make name slightly transparent
+                        ESPObjects[player].Name.Text = nameText
+                        ESPObjects[player].Name.Transparency = 0.4 -- Slightly transparent
+                    end
+                    
+                    ESPObjects[player].Name.Position = Vector2.new(screenPos.X, screenPos.Y - 30)
+                    ESPObjects[player].Name.Color = teamColor
+                    ESPObjects[player].Name.Visible = true
+                else
+                    if ESPObjects[player].Name then ESPObjects[player].Name.Visible = false end
+                end
+
+                -- Draw Health ESP
+                if ESPObjects[player].Health and _G.ESPShowHealth and hum then
+                    local percent = math.floor((hum.Health / hum.MaxHealth) * 100)
+                    ESPObjects[player].Health.Text = percent .. "%"
+                    ESPObjects[player].Health.Position = Vector2.new(screenPos.X, screenPos.Y - 15)
+                    ESPObjects[player].Health.Color = Color3.new(1 - percent / 100, percent / 100, 0)
+                    ESPObjects[player].Health.Visible = true
+                else
+                    if ESPObjects[player].Health then ESPObjects[player].Health.Visible = false end
+                end
+
+                -- Draw Tracer ESP
+                if ESPObjects[player].Tracer and _G.ESPShowTracer then
+                    ESPObjects[player].Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                    ESPObjects[player].Tracer.To = Vector2.new(screenPos.X, screenPos.Y)
+                    ESPObjects[player].Tracer.Color = teamColor
+                    
+                    -- Modify tracer transparency based on detection status
+                    if isDetected then
+                        ESPObjects[player].Tracer.Transparency = 0.6 -- Normal visibility
+                    else
+                        ESPObjects[player].Tracer.Transparency = 0.8 -- More transparent if not detected
+                    end
+                    
+                    ESPObjects[player].Tracer.Visible = true
+                else
+                    if ESPObjects[player].Tracer then ESPObjects[player].Tracer.Visible = false end
+                end
+
+                -- Box ESP - Modified to match the image with precise fitting
+                if _G.ESPShowBox and ESPObjects[player].BoxTop and ESPObjects[player].BoxBottom and 
+                   ESPObjects[player].BoxLeft and ESPObjects[player].BoxRight then
+                    
+                    -- MODIFIED: Create a slimmer box calculation
+                    -- This approach creates a narrower box that better matches the image
+                    local HRP = char:FindFirstChild("HumanoidRootPart")
+                    if not HRP then continue end
+                    
+                    -- Calculate bounding box but with reduced width
+                    local minX, minY, minZ = math.huge, math.huge, math.huge
+                    local maxX, maxY, maxZ = -math.huge, -math.huge, -math.huge
+                    
+                    -- Collect center parts (for height calculation)
+                    local parts = {}
+                    for _, part in pairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") and part.Transparency < 0.9 then
+                            table.insert(parts, part)
+                        end
+                    end
+                    
+                    -- Get actual height of character but with slimmer width
+                    for _, part in pairs(parts) do
+                        -- Convert to world coordinates
+                        local size = part.Size
+                        local pos = part.Position
+                        
+                        -- Update min/max
+                        minY = math.min(minY, pos.Y - size.Y/2)
+                        maxY = math.max(maxY, pos.Y + size.Y/2)
+                    end
+                    
+                    -- Get center position
+                    local centerX = HRP.Position.X
+                    local centerZ = HRP.Position.Z
+                    
+                    -- Set reduced width (make box narrower by using smaller width)
+                    local slimWidth = _G.ESPBoxWidth or 1.2  -- Reduced width factor (configurable)
+                    
+                    minX = centerX - slimWidth
+                    maxX = centerX + slimWidth
+                    minZ = centerZ - slimWidth
+                    maxZ = centerZ + slimWidth
+                    
+                    -- Create box corners in world space
+                    local corners = {
+                        -- Top corners
+                        Vector3.new(minX, maxY, minZ), -- Top Front Left
+                        Vector3.new(maxX, maxY, minZ), -- Top Front Right
+                        Vector3.new(minX, maxY, maxZ), -- Top Back Left
+                        Vector3.new(maxX, maxY, maxZ), -- Top Back Right
+                        
+                        -- Bottom corners
+                        Vector3.new(minX, minY, minZ), -- Bottom Front Left
+                        Vector3.new(maxX, minY, minZ), -- Bottom Front Right
+                        Vector3.new(minX, minY, maxZ), -- Bottom Back Left
+                        Vector3.new(maxX, minY, maxZ)  -- Bottom Back Right
+                    }
+                    
+                    -- Convert corners to screen positions
+                    local screenCorners = {}
+                    local anyOnScreen = false
+                    
+                    for _, corner in pairs(corners) do
+                        local cornerScreen, onScreen = Camera:WorldToViewportPoint(corner)
+                        if onScreen then anyOnScreen = true end
+                        table.insert(screenCorners, Vector2.new(cornerScreen.X, cornerScreen.Y))
+                    end
+                    
+                    if not anyOnScreen then
+                        -- Hide box if off screen
+                        ESPObjects[player].BoxTop.Visible = false
+                        ESPObjects[player].BoxBottom.Visible = false
+                        ESPObjects[player].BoxLeft.Visible = false
+                        ESPObjects[player].BoxRight.Visible = false
+                        continue
+                    end
+                    
+                    -- Find the extreme points on screen
+                    local minScreenX = math.huge
+                    local minScreenY = math.huge
+                    local maxScreenX = -math.huge
+                    local maxScreenY = -math.huge
+                    
+                    for _, point in pairs(screenCorners) do
+                        minScreenX = math.min(minScreenX, point.X)
+                        minScreenY = math.min(minScreenY, point.Y)
+                        maxScreenX = math.max(maxScreenX, point.X)
+                        maxScreenY = math.max(maxScreenY, point.Y)
+                    end
+                    
+                    -- Draw box with adjusted positions to exactly match character size
+                    local topLeft = Vector2.new(minScreenX, minScreenY)
+                    local topRight = Vector2.new(maxScreenX, minScreenY)
+                    local bottomLeft = Vector2.new(minScreenX, maxScreenY)
+                    local bottomRight = Vector2.new(maxScreenX, maxScreenY)
+                    
+                    -- Get team color for box color
+                    local boxColor = getAdvancedTeamColor(player)
+                    
+                    -- Adjust box transparency based on detection status
+                    local boxTransparency = isDetected and 1 or 0.7
+                    
+                    -- Update box lines with team color
+                    ESPObjects[player].BoxTop.From = topLeft
+                    ESPObjects[player].BoxTop.To = topRight
+                    ESPObjects[player].BoxTop.Color = boxColor
+                    ESPObjects[player].BoxTop.Transparency = boxTransparency
+                    ESPObjects[player].BoxTop.Visible = true
+                    
+                    ESPObjects[player].BoxBottom.From = bottomLeft
+                    ESPObjects[player].BoxBottom.To = bottomRight
+                    ESPObjects[player].BoxBottom.Color = boxColor
+                    ESPObjects[player].BoxBottom.Transparency = boxTransparency
+                    ESPObjects[player].BoxBottom.Visible = true
+                    
+                    ESPObjects[player].BoxLeft.From = topLeft
+                    ESPObjects[player].BoxLeft.To = bottomLeft
+                    ESPObjects[player].BoxLeft.Color = boxColor
+                    ESPObjects[player].BoxLeft.Transparency = boxTransparency
+                    ESPObjects[player].BoxLeft.Visible = true
+                    
+                    ESPObjects[player].BoxRight.From = topRight
+                    ESPObjects[player].BoxRight.To = bottomRight
+                    ESPObjects[player].BoxRight.Color = boxColor
+                    ESPObjects[player].BoxRight.Transparency = boxTransparency
+                    ESPObjects[player].BoxRight.Visible = true
+                else
+                    -- Hide box if disabled
+                    if ESPObjects[player].BoxTop then ESPObjects[player].BoxTop.Visible = false end
+                    if ESPObjects[player].BoxBottom then ESPObjects[player].BoxBottom.Visible = false end
+                    if ESPObjects[player].BoxLeft then ESPObjects[player].BoxLeft.Visible = false end
+                    if ESPObjects[player].BoxRight then ESPObjects[player].BoxRight.Visible = false end
+                end
+            end
+        end
+    end)
+end)
