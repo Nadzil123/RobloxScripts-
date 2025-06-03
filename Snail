@@ -1,0 +1,171 @@
+if not _G.Snail_Config then
+	return warn("[SNAIL SCRIPT] Please run the Snail script loader instead, thanks.")
+end
+
+local RunConnections = {}
+local Config = _G.Snail_Config -- Temp
+
+--// Fix config for old movement
+if Config.UseCameraRotaton then
+	Config.DistanceChangesSpeed = false
+end
+if Config.IsMobile then
+    Config.NoMouse = true
+end
+
+--// Only run the script to update the config
+if _G.Snail_Ran then
+	return 
+end
+_G.Snail_Ran = true
+
+--// Services
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ContextActionService = game:GetService("ContextActionService")
+
+--// Instances
+local raycastParams
+local Camera = workspace.CurrentCamera
+local SnailPartsFolder = Instance.new("Folder", workspace)
+
+-- Camera focus
+local CameraPart = Instance.new("Part", SnailPartsFolder)
+CameraPart.Anchored = true
+CameraPart.Transparency = 1
+CameraPart.Size = Vector3.new(1.5, 1.5, 1.5)
+CameraPart.Color = Color3.fromRGB(255, 170, 0)
+CameraPart.CanCollide = false
+
+-- Teleport highlight
+local HighlightPart = Instance.new("Part", SnailPartsFolder)
+HighlightPart.Anchored = true
+HighlightPart.Transparency = 1
+HighlightPart.Size = Vector3.new(2, 2, 2)
+HighlightPart.Color = Color3.fromRGB(255, 0, 0)
+HighlightPart.Shape = Enum.PartType.Ball
+HighlightPart.CanQuery = false
+HighlightPart.CanCollide = false
+HighlightPart.Material = Enum.Material.ForceField
+
+--// Dirt particle effect
+local DirtSpecks = Instance.new("ParticleEmitter", CameraPart)
+DirtSpecks.Enabled = false
+DirtSpecks.Drag = 3
+DirtSpecks.Rate = 60
+DirtSpecks.Acceleration = Vector3.new(0, -5, 0)
+DirtSpecks.Speed = NumberRange.new(10, 15)
+DirtSpecks.SpreadAngle = Vector2.new(90, 90)
+DirtSpecks.Texture = "rbxassetid://4509687978"
+DirtSpecks.Lifetime = NumberRange.new(0.5, 1)
+DirtSpecks.Color = Config.DirtColor
+DirtSpecks.Size = Config.DirtSize
+DirtSpecks.Transparency = NumberSequence.new{
+	NumberSequenceKeypoint.new(0, 0),
+	NumberSequenceKeypoint.new(0.50, 0.5),
+	NumberSequenceKeypoint.new(1, 0)
+}
+
+--// Snail trail
+local Trail = Instance.new("Trail", SnailPartsFolder)
+Trail.Color = Config.Color
+Trail.Lifetime = Config.Length
+Trail.Transparency = Config.Transparency
+Trail.FaceCamera = true
+Trail.WidthScale = NumberSequence.new{
+	NumberSequenceKeypoint.new(0.00, 0.8),
+	NumberSequenceKeypoint.new(1.00, 0.0)
+}
+
+--// LocalPlayer
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+local IsMobile = UserInputService.TouchEnabled or Config.UseCameraRotaton
+local PlayerGui = LocalPlayer.PlayerGui
+
+local Character: Model
+local Head: Part
+local Root: Part
+local Humanoid: Humanoid
+
+--// Functions
+
+--// Sound service
+local Sounds = {}
+for Name, Info in next, Config.Audios do
+	local Parent = LocalPlayer.PlayerGui
+	local Sound = Instance.new("Sound", Parent)
+	Sound.Volume = 0.5
+
+	--// Change properties for sound
+	for Key, Value in next, Info do
+		if Key == "SoundId" then
+			Value = "rbxassetid://" .. Value
+		end
+		Sound[Key] = Value
+	end
+
+	--// Overwrite
+	Sounds[Name] = Sound
+end
+
+--// Update Character references and Trail attachments
+local function UpdateCharacter()
+	Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+	Root = Character:WaitForChild("HumanoidRootPart", 5)
+	Humanoid = Character:WaitForChild("Humanoid", 5)
+	Head = Character:FindFirstChild("Head") or Character:FindFirstChildWhichIsA("BasePart")
+
+	if Trail and Root then
+		-- Attach the Trail from the Root to the CameraPart
+		local attach0 = Instance.new("Attachment", Root)
+		local attach1 = Instance.new("Attachment", CameraPart)
+		Trail.Attachment0 = attach0
+		Trail.Attachment1 = attach1
+	end
+end
+UpdateCharacter()
+LocalPlayer.CharacterAdded:Connect(UpdateCharacter)
+
+--// Mobile Double Tap Teleport
+if IsMobile then
+	local lastTapTime = 0
+	local tapCooldown = 0.3 -- seconds
+
+	UserInputService.TouchTapInWorld:Connect(function(tapPositions, isProcessed)
+		if isProcessed or #tapPositions == 0 then return end
+
+		local now = tick()
+		if now - lastTapTime <= tapCooldown then
+			local tapPos = tapPositions[1]
+			local ray = Camera:ScreenPointToRay(tapPos.X, tapPos.Y)
+			local raycastParams = RaycastParams.new()
+			raycastParams.FilterDescendantsInstances = {Character, SnailPartsFolder}
+			raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+			raycastParams.IgnoreWater = true
+
+			local result = workspace:Raycast(ray.Origin, ray.Direction * 500, raycastParams)
+			if result then
+				local targetPos = result.Position + Vector3.new(0, 3, 0)
+				if Root then
+					Root.CFrame = CFrame.new(targetPos)
+
+					-- Highlight effect
+					HighlightPart.Position = targetPos
+					HighlightPart.Transparency = 0.5
+					task.delay(0.3, function()
+						HighlightPart.Transparency = 1
+					end)
+
+					-- Sound
+					local sound = Sounds.Teleport
+					if sound then
+						sound:Play()
+					end
+				end
+			end
+		end
+		lastTapTime = now
+	end)
+end
