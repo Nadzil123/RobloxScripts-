@@ -89,8 +89,6 @@ local Head: Part
 local Root: Part
 local Humanoid: Humanoid
 
---// Functions
-
 --// Sound service
 local Sounds = {}
 for Name, Info in next, Config.Audios do
@@ -98,7 +96,6 @@ for Name, Info in next, Config.Audios do
 	local Sound = Instance.new("Sound", Parent)
 	Sound.Volume = 0.5
 
-	--// Change properties for sound
 	for Key, Value in next, Info do
 		if Key == "SoundId" then
 			Value = "rbxassetid://" .. Value
@@ -106,7 +103,6 @@ for Name, Info in next, Config.Audios do
 		Sound[Key] = Value
 	end
 
-	--// Overwrite
 	Sounds[Name] = Sound
 end
 
@@ -118,7 +114,6 @@ local function UpdateCharacter()
 	Head = Character:FindFirstChild("Head") or Character:FindFirstChildWhichIsA("BasePart")
 
 	if Trail and Root then
-		-- Attach the Trail from the Root to the CameraPart
 		local attach0 = Instance.new("Attachment", Root)
 		local attach1 = Instance.new("Attachment", CameraPart)
 		Trail.Attachment0 = attach0
@@ -128,13 +123,13 @@ end
 UpdateCharacter()
 LocalPlayer.CharacterAdded:Connect(UpdateCharacter)
 
---// Mobile Double Tap Teleport
+--// ✅ Fixed: Mobile Double Tap Teleport
 if IsMobile then
 	local lastTapTime = 0
 	local tapCooldown = 0.3 -- seconds
 
 	UserInputService.TouchTapInWorld:Connect(function(tapPositions, isProcessed)
-		if isProcessed or #tapPositions == 0 then return end
+		if isProcessed or typeof(tapPositions) ~= "table" or #tapPositions == 0 then return end
 
 		local now = tick()
 		if now - lastTapTime <= tapCooldown then
