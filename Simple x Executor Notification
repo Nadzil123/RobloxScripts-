@@ -1,0 +1,199 @@
+--[=[
+ d888b  db    db d888888b      .d888b.      db      db    db  .d8b.  
+88' Y8b 88    88   `88'        VP  `8D      88      88    88 d8' `8b 
+88      88    88    88            odD'      88      88    88 88ooo88 
+88  ooo 88    88    88          .88'        88      88    88 88~~~88 
+88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
+ Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
+
+designed using localmaze gui creator - FIXED VERSION
+]=]
+
+local LMG2L = {};
+local TweenService = game:GetService("TweenService")
+local isClosing = false  -- ✅ Flag to prevent double-close
+
+-- Players.nadzil657.PlayerGui.ScreenGui
+LMG2L["ScreenGui_1"] = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"));
+LMG2L["ScreenGui_1"]["ZIndexBehavior"] = Enum.ZIndexBehavior.Sibling;
+LMG2L["ScreenGui_1"]["ResetOnSpawn"] = false;
+
+-- Main Frame
+LMG2L["Frame_2"] = Instance.new("Frame", LMG2L["ScreenGui_1"]);
+LMG2L["Frame_2"]["BorderSizePixel"] = 0;
+LMG2L["Frame_2"]["BackgroundColor3"] = Color3.fromRGB(35, 35, 40);
+LMG2L["Frame_2"]["AnchorPoint"] = Vector2.new(1, 1);
+LMG2L["Frame_2"]["Size"] = UDim2.new(0, 320, 0, 130);
+LMG2L["Frame_2"]["Position"] = UDim2.new(1, -20, 1, -20);
+LMG2L["Frame_2"]["BackgroundTransparency"] = 0.05;
+LMG2L["Frame_2"]["ClipsDescendants"] = true;
+
+-- Frame Corner
+LMG2L["UICorner_3"] = Instance.new("UICorner", LMG2L["Frame_2"]);
+LMG2L["UICorner_3"]["CornerRadius"] = UDim.new(0, 10);
+
+-- Drop Shadow
+LMG2L["Shadow_9"] = Instance.new("ImageLabel", LMG2L["Frame_2"]);
+LMG2L["Shadow_9"]["BackgroundTransparency"] = 1;
+LMG2L["Shadow_9"]["Size"] = UDim2.new(1, 30, 1, 30);
+LMG2L["Shadow_9"]["Position"] = UDim2.new(0, -15, 0, -15);
+LMG2L["Shadow_9"]["Image"] = "rbxassetid://6014261993";
+LMG2L["Shadow_9"]["ImageColor3"] = Color3.fromRGB(0, 0, 0);
+LMG2L["Shadow_9"]["ImageTransparency"] = 0.5;
+LMG2L["Shadow_9"]["ScaleType"] = Enum.ScaleType.Slice;
+LMG2L["Shadow_9"]["SliceCenter"] = Rect.new(49, 49, 450, 450);
+LMG2L["Shadow_9"]["ZIndex"] = -1;
+
+-- Notification Header
+LMG2L["NotificationLabel_4"] = Instance.new("TextLabel", LMG2L["Frame_2"]);
+LMG2L["NotificationLabel_4"]["BorderSizePixel"] = 0;
+LMG2L["NotificationLabel_4"]["TextSize"] = 16;
+LMG2L["NotificationLabel_4"]["BackgroundColor3"] = Color3.fromRGB(45, 45, 50);
+LMG2L["NotificationLabel_4"]["FontFace"] = Font.new([[rbxasset://fonts/families/GothamSSm.json]], Enum.FontWeight.Bold, Enum.FontStyle.Normal);
+LMG2L["NotificationLabel_4"]["TextColor3"] = Color3.fromRGB(255, 255, 255);
+LMG2L["NotificationLabel_4"]["Size"] = UDim2.new(1, 0, 0, 35);
+LMG2L["NotificationLabel_4"]["Position"] = UDim2.new(0, 0, 0, 0);
+LMG2L["NotificationLabel_4"]["Text"] = [[  Notification]];
+LMG2L["NotificationLabel_4"]["Name"] = [[NotificationLabel]];
+LMG2L["NotificationLabel_4"]["TextXAlignment"] = Enum.TextXAlignment.Left;
+
+-- Header Corner
+LMG2L["UICorner_5"] = Instance.new("UICorner", LMG2L["NotificationLabel_4"]);
+LMG2L["UICorner_5"]["CornerRadius"] = UDim.new(0, 10);
+
+-- Close Button
+LMG2L["TextButton_6"] = Instance.new("TextButton", LMG2L["NotificationLabel_4"]);
+LMG2L["TextButton_6"]["BorderSizePixel"] = 0;
+LMG2L["TextButton_6"]["TextSize"] = 16;
+LMG2L["TextButton_6"]["TextColor3"] = Color3.fromRGB(255, 255, 255);
+LMG2L["TextButton_6"]["BackgroundColor3"] = Color3.fromRGB(255, 60, 60);
+LMG2L["TextButton_6"]["FontFace"] = Font.new([[rbxasset://fonts/families/GothamSSm.json]], Enum.FontWeight.Bold, Enum.FontStyle.Normal);
+LMG2L["TextButton_6"]["Size"] = UDim2.new(0, 28, 0, 28);
+LMG2L["TextButton_6"]["Text"] = [[×]];
+LMG2L["TextButton_6"]["AnchorPoint"] = Vector2.new(1, 0.5);
+LMG2L["TextButton_6"]["Position"] = UDim2.new(1, -8, 0.5, 0);
+LMG2L["TextButton_6"]["BackgroundTransparency"] = 0;
+
+local CloseCorner = Instance.new("UICorner", LMG2L["TextButton_6"]);
+CloseCorner.CornerRadius = UDim.new(1, 0);
+
+-- Progress Bar Container
+LMG2L["ProgressContainer_13"] = Instance.new("Frame", LMG2L["Frame_2"]);
+LMG2L["ProgressContainer_13"]["BorderSizePixel"] = 0;
+LMG2L["ProgressContainer_13"]["BackgroundColor3"] = Color3.fromRGB(60, 60, 65);
+LMG2L["ProgressContainer_13"]["Size"] = UDim2.new(1, 0, 0, 3);
+LMG2L["ProgressContainer_13"]["Position"] = UDim2.new(0, 0, 0, 35);
+LMG2L["ProgressContainer_13"]["ClipsDescendants"] = true;
+
+-- Progress Bar (Green)
+LMG2L["ProgressBar_12"] = Instance.new("Frame", LMG2L["ProgressContainer_13"]);
+LMG2L["ProgressBar_12"]["BorderSizePixel"] = 0;
+LMG2L["ProgressBar_12"]["BackgroundColor3"] = Color3.fromRGB(50, 200, 100);
+LMG2L["ProgressBar_12"]["Size"] = UDim2.new(1, 0, 1, 0);
+LMG2L["ProgressBar_12"]["Position"] = UDim2.new(0, 0, 0, 0);
+
+-- Notification Text
+LMG2L["NotificationText_7"] = Instance.new("TextLabel", LMG2L["Frame_2"]);
+LMG2L["NotificationText_7"]["TextWrapped"] = true;
+LMG2L["NotificationText_7"]["BorderSizePixel"] = 0;
+LMG2L["NotificationText_7"]["TextSize"] = 16;
+LMG2L["NotificationText_7"]["TextXAlignment"] = Enum.TextXAlignment.Left;
+LMG2L["NotificationText_7"]["TextYAlignment"] = Enum.TextYAlignment.Top;
+LMG2L["NotificationText_7"]["BackgroundColor3"] = Color3.fromRGB(35, 35, 40);
+LMG2L["NotificationText_7"]["FontFace"] = Font.new([[rbxasset://fonts/families/GothamSSm.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal);
+LMG2L["NotificationText_7"]["TextColor3"] = Color3.fromRGB(220, 220, 220);
+LMG2L["NotificationText_7"]["Size"] = UDim2.new(1, -20, 1, -48);
+LMG2L["NotificationText_7"]["Text"] = [[This is an example notification with improved UI design. It supports multiple lines and looks modern!]];
+LMG2L["NotificationText_7"]["Name"] = [[NotificationText]];
+LMG2L["NotificationText_7"]["Position"] = UDim2.new(0, 10, 0, 43);
+LMG2L["NotificationText_7"]["BackgroundTransparency"] = 1;
+
+-- Text Corner
+LMG2L["UICorner_8"] = Instance.new("UICorner", LMG2L["NotificationText_7"]);
+LMG2L["UICorner_8"]["CornerRadius"] = UDim.new(0, 6);
+
+-- ✅ FIXED FUNCTIONALITY
+
+-- Close function with proper guards
+local function closeNotification()
+    if isClosing then return end  -- ✅ Prevent double execution
+    isClosing = true
+
+    local fadeOut = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(1, 50, 1, -20)
+    })
+
+    -- ✅ Properly handle different GUI object types
+    for _, child in pairs(LMG2L["Frame_2"]:GetDescendants()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") then
+            TweenService:Create(child, TweenInfo.new(0.3), {
+                TextTransparency = 1,
+                BackgroundTransparency = 1
+            }):Play()
+        elseif child:IsA("Frame") then
+            TweenService:Create(child, TweenInfo.new(0.3), {
+                BackgroundTransparency = 1
+            }):Play()
+        elseif child:IsA("ImageLabel") then
+            TweenService:Create(child, TweenInfo.new(0.3), {
+                ImageTransparency = 1
+            }):Play()
+        end
+    end
+
+    fadeOut:Play()
+    fadeOut.Completed:Wait()
+    LMG2L["ScreenGui_1"]:Destroy()
+end
+
+-- Hover effect for close button
+LMG2L["TextButton_6"].MouseEnter:Connect(function()
+    if not isClosing then
+        TweenService:Create(LMG2L["TextButton_6"], TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+        }):Play()
+    end
+end)
+
+LMG2L["TextButton_6"].MouseLeave:Connect(function()
+    if not isClosing then
+        TweenService:Create(LMG2L["TextButton_6"], TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+        }):Play()
+    end
+end)
+
+-- Close button connection
+LMG2L["TextButton_6"].MouseButton1Click:Connect(closeNotification)
+
+-- Slide in animation
+LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, -20)
+task.wait(0.1)
+
+local slideIn = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Position = UDim2.new(1, -20, 1, -20)
+})
+slideIn:Play()
+
+-- ✅ FIXED Progress bar and auto-close
+local duration = 5
+local startTime = tick()
+
+task.spawn(function()
+    while not isClosing do
+        local elapsed = tick() - startTime
+        local progress = 1 - (elapsed / duration)
+
+        if progress <= 0 then
+            LMG2L["ProgressBar_12"].Size = UDim2.new(0, 0, 1, 0)  -- ✅ Force to zero
+            break
+        end
+
+        LMG2L["ProgressBar_12"].Size = UDim2.new(progress, 0, 1, 0)
+        task.wait(0.03)
+    end
+
+    closeNotification()
+end)
+
+return LMG2L["ScreenGui_1"], require;
