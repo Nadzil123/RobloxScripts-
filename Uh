@@ -6,30 +6,25 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - SMART HEIGHT
+designed using localmaze gui creator - NEW AT BOTTOM
 ]=]
 
 local TextService = game:GetService("TextService")
 
--- ✅ NOTIFICATION STACK
+-- ✅ NOTIFICATION STACK (NEW AT BOTTOM, OLD MOVES UP)
 local NotificationStack = {
     Active = {},
     Spacing = 10
 }
 
 function NotificationStack:GetOffset()
-    local offset = -20
-    for i = #self.Active, 1, -1 do
-        local notif = self.Active[i]
-        if notif.IsAlive and notif.Height then
-            offset = offset - notif.Height - self.Spacing
-        end
-    end
-    return offset
+    -- ✅ Notif baru selalu di -20 (bawah)
+    return -20
 end
 
 function NotificationStack:Add(notif)
-    table.insert(self.Active, 1, notif)
+    -- ✅ Insert di AKHIR array (notif baru jadi yang terakhir)
+    table.insert(self.Active, notif)
     self:Update()
 end
 
@@ -45,8 +40,11 @@ end
 
 function NotificationStack:Update()
     local TweenService = game:GetService("TweenService")
-    local offset = -20
     
+    -- ✅ Update dari BELAKANG ke DEPAN (terbaru ke terlama)
+    -- Notif terbaru (index terakhir) di -20
+    -- Notif lama (index awal) naik ke atas
+    local offset = -20
     for i = #self.Active, 1, -1 do
         local notif = self.Active[i]
         if notif.IsAlive and notif.Frame and notif.Height then
@@ -75,7 +73,7 @@ local function CalculateMinHeight(text, width)
     local wrappedSize = TextService:GetTextBoundsAsync(textParams)
     
     local minHeight = headerHeight + progressHeight + wrappedSize.Y + textTopPadding + textBottomPadding
-    minHeight = math.max(minHeight, 85)  -- Absolute minimum
+    minHeight = math.max(minHeight, 85)
     
     return minHeight
 end
@@ -87,11 +85,8 @@ return function(config)
     local text = config.Text or "Notification"
     local title = config.Title or "Notification"
     
-    -- ✅ SMART SIZE CALCULATION
-    local finalWidth = config.Width or 260  -- Default 260px
-    local minHeightNeeded = CalculateMinHeight(text, finalWidth)  -- Calculate minimum
-    
-    -- ✅ Take the LARGER of: user's Height OR minimum needed
+    local finalWidth = config.Width or 260
+    local minHeightNeeded = CalculateMinHeight(text, finalWidth)
     local finalHeight = config.Height and math.max(config.Height, minHeightNeeded) or minHeightNeeded
     
     local notifData = {
@@ -265,10 +260,11 @@ return function(config)
     
     local duration = config.Duration or 5
     
+    -- ✅ Notif baru selalu muncul di -20 (bawah)
     local targetYOffset = NotificationStack:GetOffset()
     
     notifData.Frame = LMG2L["Frame_2"]
-    NotificationStack:Add(notifData)
+    NotificationStack:Add(notifData)  -- ✅ Ini akan push notif lama ke atas
     
     LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, targetYOffset)
     task.wait(0.1)
