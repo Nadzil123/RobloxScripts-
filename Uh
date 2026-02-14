@@ -61,7 +61,7 @@ end
 -- ✅ CALCULATE TEXT SIZE (FIXED - Force wrap to bottom)
 local function CalculateSize(text, title)
     -- ✅ Fixed width untuk paksa text wrap ke bawah
-    local fixedWidth = 250  -- Width tetap, tidak dinamis
+    local fixedWidth = 180  -- Width tetap, tidak dinamis
     local padding = 20
     local headerHeight = 35
     local progressHeight = 3
