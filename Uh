@@ -6,12 +6,37 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - FINAL FIX
+designed using localmaze gui creator - PROPER CONTAINER
 ]=]
 
+local TweenService = game:GetService("TweenService")
 local TextService = game:GetService("TextService")
+local Players = game:GetService("Players")
 
--- ✅ NOTIFICATION STACK (FIXED!)
+-- ✅ GLOBAL SCREENGUI + CONTAINER (ONCE!)
+local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local RootGui = playerGui:FindFirstChild("NotificationRoot")
+if not RootGui then
+    RootGui = Instance.new("ScreenGui")
+    RootGui.Name = "NotificationRoot"
+    RootGui.ResetOnSpawn = false
+    RootGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    RootGui.Parent = playerGui
+end
+
+local Container = RootGui:FindFirstChild("Container")
+if not Container then
+    Container = Instance.new("Frame")
+    Container.Name = "Container"
+    Container.AnchorPoint = Vector2.new(1, 1)
+    Container.Position = UDim2.new(1, -20, 1, -20)
+    Container.Size = UDim2.new(0, 0, 0, 0)
+    Container.BackgroundTransparency = 1
+    Container.Parent = RootGui
+end
+
+-- ✅ NOTIFICATION STACK (FIXED WITH CONTAINER!)
 local NotificationStack = {
     Active = {},
     Spacing = 10
@@ -32,9 +57,8 @@ function NotificationStack:Remove(notif)
     self:UpdateAll()
 end
 
--- ✅ NEW: Get offset untuk notif tertentu
 function NotificationStack:GetOffsetFor(notif)
-    local offset = -20
+    local offset = 0  -- ✅ Start from 0 (container-relative)
     
     for i = #self.Active, 1, -1 do
         local n = self.Active[i]
@@ -48,18 +72,17 @@ function NotificationStack:GetOffsetFor(notif)
         end
     end
     
-    return -20
+    return 0
 end
 
 function NotificationStack:UpdateAll()
-    local TweenService = game:GetService("TweenService")
-    
-    local offset = -20
+    local offset = 0  -- ✅ Start from 0
     for i = #self.Active, 1, -1 do
         local notif = self.Active[i]
         if notif.IsAlive and notif.Frame and notif.Height then
+            -- ✅ Container-relative position!
             TweenService:Create(notif.Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-                Position = UDim2.new(1, -20, 1, offset)
+                Position = UDim2.new(0, 0, 0, offset)
             }):Play()
             offset = offset - notif.Height - self.Spacing
         end
@@ -104,21 +127,18 @@ return function(config)
     }
     
     local LMG2L = {};
-    local TweenService = game:GetService("TweenService")
     local isClosing = false
 
-    LMG2L["ScreenGui_1"] = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"));
-    LMG2L["ScreenGui_1"]["ZIndexBehavior"] = Enum.ZIndexBehavior.Sibling;
-    LMG2L["ScreenGui_1"]["ResetOnSpawn"] = false;
-
-    LMG2L["Frame_2"] = Instance.new("Frame", LMG2L["ScreenGui_1"]);
-    LMG2L["Frame_2"]["BorderSizePixel"] = 0;
-    LMG2L["Frame_2"]["BackgroundColor3"] = Color3.fromRGB(35, 35, 40);
-    LMG2L["Frame_2"]["AnchorPoint"] = Vector2.new(1, 1);
-    LMG2L["Frame_2"]["Size"] = UDim2.new(0, 320, 0, 130);
-    LMG2L["Frame_2"]["Position"] = UDim2.new(1, -20, 1, -20);
-    LMG2L["Frame_2"]["BackgroundTransparency"] = 0.05;
-    LMG2L["Frame_2"]["ClipsDescendants"] = true;
+    -- ✅ Main Frame (PARENT = CONTAINER!)
+    LMG2L["Frame_2"] = Instance.new("Frame")
+    LMG2L["Frame_2"]["BorderSizePixel"] = 0
+    LMG2L["Frame_2"]["BackgroundColor3"] = Color3.fromRGB(35, 35, 40)
+    LMG2L["Frame_2"]["AnchorPoint"] = Vector2.new(1, 1)  -- ✅ Anchor tetap kanan bawah
+    LMG2L["Frame_2"]["Size"] = UDim2.new(0, 320, 0, 130)
+    LMG2L["Frame_2"]["Position"] = UDim2.new(0, 0, 0, 0)  -- ✅ Container-relative!
+    LMG2L["Frame_2"]["BackgroundTransparency"] = 0.05
+    LMG2L["Frame_2"]["ClipsDescendants"] = true
+    LMG2L["Frame_2"]["Parent"] = Container  -- ✅ Parent ke Container!
 
     LMG2L["UICorner_3"] = Instance.new("UICorner", LMG2L["Frame_2"]);
     LMG2L["UICorner_3"]["CornerRadius"] = UDim.new(0, 10);
@@ -203,7 +223,7 @@ return function(config)
         NotificationStack:Remove(notifData)
 
         local fadeOut = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Position = UDim2.new(1, 50, 1, LMG2L["Frame_2"].Position.Y.Offset)
+            Position = UDim2.new(0, 50, 0, LMG2L["Frame_2"].Position.Y.Offset)  -- ✅ Slide ke kanan (container-relative)
         })
 
         for _, child in pairs(LMG2L["Frame_2"]:GetDescendants()) do
@@ -230,7 +250,7 @@ return function(config)
             pcall(config.OnClose)
         end
         
-        LMG2L["ScreenGui_1"]:Destroy()
+        LMG2L["Frame_2"]:Destroy()
     end
 
     LMG2L["TextButton_6"].MouseEnter:Connect(function()
@@ -267,23 +287,23 @@ return function(config)
     
     local duration = config.Duration or 5
     
-    -- ✅ TRULY FIXED LIFECYCLE
+    -- ✅ PROPERLY FIXED LIFECYCLE
     notifData.Frame = LMG2L["Frame_2"]
     
-    -- 1. Add ke stack dulu
+    -- 1. Add ke stack
     NotificationStack:Add(notifData)
     
-    -- 2. 🔥 Ambil offset BENAR dari stack!
+    -- 2. Get offset dari stack
     local targetOffset = NotificationStack:GetOffsetFor(notifData)
     
-    -- 3. Posisi awal offscreen (tapi di Y yang benar!)
-    LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, targetOffset)
+    -- 3. Posisi awal offscreen (KANAN, container-relative)
+    LMG2L["Frame_2"].Position = UDim2.new(0, 50, 0, targetOffset)
     
     task.wait(0.1)
     
-    -- 4. 🔥 Slide in ke offset yang BENAR, bukan selalu -20!
+    -- 4. Slide in ke posisi yang benar (container-relative)
     local slideIn = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Position = UDim2.new(1, -20, 1, targetOffset)
+        Position = UDim2.new(0, 0, 0, targetOffset)
     })
     slideIn:Play()
 
@@ -306,5 +326,5 @@ return function(config)
         closeNotification()
     end)
 
-    return LMG2L["ScreenGui_1"]
+    return LMG2L["Frame_2"]
 end
