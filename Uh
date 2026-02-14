@@ -6,15 +6,10 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - WRAPPER VERSION (SIZE + REVERSE STACK)
+designed using localmaze gui creator - AUTO-SIZE VERSION
 ]=]
 
--- ✅ SIZE PRESETS
-local SizePresets = {
-    small = {Width = 280, Height = 100},
-    medium = {Width = 320, Height = 130},  -- Default
-    large = {Width = 380, Height = 160}
-}
+local TextService = game:GetService("TextService")
 
 -- ✅ NOTIFICATION STACK (External Layer)
 local NotificationStack = {
@@ -24,7 +19,6 @@ local NotificationStack = {
 
 function NotificationStack:GetOffset()
     local offset = -20
-    -- ✅ Notifikasi lama di atas, baru di bawah
     for i = #self.Active, 1, -1 do
         local notif = self.Active[i]
         if notif.IsAlive and notif.Height then
@@ -35,7 +29,6 @@ function NotificationStack:GetOffset()
 end
 
 function NotificationStack:Add(notif)
-    -- ✅ Insert di awal array (notif baru jadi index 1)
     table.insert(self.Active, 1, notif)
     self:Update()
 end
@@ -54,7 +47,6 @@ function NotificationStack:Update()
     local TweenService = game:GetService("TweenService")
     local offset = -20
     
-    -- ✅ Update dari belakang ke depan (lama ke baru)
     for i = #self.Active, 1, -1 do
         local notif = self.Active[i]
         if notif.IsAlive and notif.Frame and notif.Height then
@@ -66,18 +58,63 @@ function NotificationStack:Update()
     end
 end
 
+-- ✅ CALCULATE TEXT SIZE
+local function CalculateSize(text, title)
+    -- Base measurements
+    local minWidth = 250
+    local maxWidth = 400
+    local padding = 40  -- Left + right padding
+    local headerHeight = 35
+    local progressHeight = 3
+    local textPadding = 20
+    
+    -- Calculate title width
+    local titleParams = Instance.new("GetTextBoundsParams")
+    titleParams.Text = "  " .. title
+    titleParams.Font = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+    titleParams.Size = 16
+    titleParams.Width = maxWidth
+    
+    local titleSize = TextService:GetTextBoundsAsync(titleParams)
+    
+    -- Calculate text width
+    local textParams = Instance.new("GetTextBoundsParams")
+    textParams.Text = text
+    textParams.Font = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+    textParams.Size = 14
+    textParams.Width = maxWidth - padding
+    
+    local textSize = TextService:GetTextBoundsAsync(textParams)
+    
+    -- Determine final width (based on longest content)
+    local contentWidth = math.max(titleSize.X + 50, textSize.X + padding)
+    local finalWidth = math.clamp(contentWidth, minWidth, maxWidth)
+    
+    -- Calculate wrapped text height
+    textParams.Width = finalWidth - padding
+    local wrappedSize = TextService:GetTextBoundsAsync(textParams)
+    
+    -- Final height
+    local finalHeight = headerHeight + progressHeight + wrappedSize.Y + textPadding + 10
+    finalHeight = math.max(finalHeight, 90)  -- Minimum height
+    
+    return Vector2.new(finalWidth, finalHeight)
+end
+
 -- ✅ NOTIFICATION FACTORY (External Layer)
 return function(config)
     config = config or {}
     
-    -- ✅ Get size preset
-    local sizeKey = config.Size or "medium"
-    local sizeData = SizePresets[sizeKey] or SizePresets.medium
+    local text = config.Text or "Notification"
+    local title = config.Title or "Notification"
+    
+    -- ✅ Calculate dynamic size
+    local calculatedSize = CalculateSize(text, title)
     
     local notifData = {
         IsAlive = true,
         Frame = nil,
-        Height = sizeData.Height
+        Height = calculatedSize.Y
     }
     
     -- ==========================================
@@ -161,7 +198,7 @@ return function(config)
     LMG2L["NotificationText_7"] = Instance.new("TextLabel", LMG2L["Frame_2"]);
     LMG2L["NotificationText_7"]["TextWrapped"] = true;
     LMG2L["NotificationText_7"]["BorderSizePixel"] = 0;
-    LMG2L["NotificationText_7"]["TextSize"] = 16;
+    LMG2L["NotificationText_7"]["TextSize"] = 14;
     LMG2L["NotificationText_7"]["TextXAlignment"] = Enum.TextXAlignment.Left;
     LMG2L["NotificationText_7"]["TextYAlignment"] = Enum.TextYAlignment.Top;
     LMG2L["NotificationText_7"]["BackgroundColor3"] = Color3.fromRGB(35, 35, 40);
@@ -233,11 +270,11 @@ return function(config)
     LMG2L["TextButton_6"].MouseButton1Click:Connect(closeNotification)
 
     -- ==========================================
-    -- EXTERNAL CONFIGURATION (Read-only modification)
+    -- EXTERNAL CONFIGURATION
     -- ==========================================
     
-    -- ✅ Apply size
-    LMG2L["Frame_2"].Size = UDim2.new(0, sizeData.Width, 0, sizeData.Height)
+    -- ✅ Apply dynamic size
+    LMG2L["Frame_2"].Size = UDim2.new(0, calculatedSize.X, 0, calculatedSize.Y)
     
     if config.Text then
         LMG2L["NotificationText_7"].Text = config.Text
@@ -254,7 +291,7 @@ return function(config)
     local duration = config.Duration or 5
     
     -- ==========================================
-    -- LIFECYCLE (Internal - Tidak Diubah)
+    -- LIFECYCLE
     -- ==========================================
     
     local targetYOffset = NotificationStack:GetOffset()
