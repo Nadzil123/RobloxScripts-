@@ -6,7 +6,7 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - COMPACT WIDTH
+designed using localmaze gui creator - CUSTOM SIZE
 ]=]
 
 local TextService = game:GetService("TextService")
@@ -58,9 +58,8 @@ function NotificationStack:Update()
     end
 end
 
--- ✅ CALCULATE SIZE (WIDTH LEBIH PENDEK!)
-local function CalculateSize(text, title)
-    local fixedWidth = 260  -- ✅ Lebih pendek dari 320!
+-- ✅ AUTO-CALCULATE SIZE (jika Width/Height tidak di-set)
+local function CalculateSize(text, width)
     local padding = 20
     local headerHeight = 35
     local progressHeight = 3
@@ -71,14 +70,14 @@ local function CalculateSize(text, title)
     textParams.Text = text
     textParams.Font = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
     textParams.Size = 14
-    textParams.Width = fixedWidth - (padding * 2)
+    textParams.Width = width - (padding * 2)
     
     local wrappedSize = TextService:GetTextBoundsAsync(textParams)
     
     local finalHeight = headerHeight + progressHeight + wrappedSize.Y + textTopPadding + textBottomPadding
     finalHeight = math.max(finalHeight, 85)
     
-    return Vector2.new(fixedWidth, finalHeight)
+    return finalHeight
 end
 
 -- ✅ NOTIFICATION FACTORY
@@ -88,12 +87,14 @@ return function(config)
     local text = config.Text or "Notification"
     local title = config.Title or "Notification"
     
-    local calculatedSize = CalculateSize(text, title)
+    -- ✅ MANUAL WIDTH/HEIGHT dari config, atau default auto
+    local finalWidth = config.Width or 260  -- Default 260px
+    local finalHeight = config.Height or CalculateSize(text, finalWidth)  -- Auto-calculate jika tidak di-set
     
     local notifData = {
         IsAlive = true,
         Frame = nil,
-        Height = calculatedSize.Y
+        Height = finalHeight
     }
     
     local LMG2L = {};
@@ -244,8 +245,8 @@ return function(config)
 
     LMG2L["TextButton_6"].MouseButton1Click:Connect(closeNotification)
 
-    -- ✅ Apply dynamic size (WIDTH 260px!)
-    LMG2L["Frame_2"].Size = UDim2.new(0, calculatedSize.X, 0, calculatedSize.Y)
+    -- ✅ Apply custom size
+    LMG2L["Frame_2"].Size = UDim2.new(0, finalWidth, 0, finalHeight)
     
     if config.Text then
         LMG2L["NotificationText_7"].Text = config.Text
