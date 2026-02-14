@@ -6,8 +6,15 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - WRAPPER VERSION (FIXED)
+designed using localmaze gui creator - WRAPPER VERSION (SIZE + REVERSE STACK)
 ]=]
+
+-- ✅ SIZE PRESETS
+local SizePresets = {
+    small = {Width = 280, Height = 100},
+    medium = {Width = 320, Height = 130},  -- Default
+    large = {Width = 380, Height = 160}
+}
 
 -- ✅ NOTIFICATION STACK (External Layer)
 local NotificationStack = {
@@ -17,16 +24,19 @@ local NotificationStack = {
 
 function NotificationStack:GetOffset()
     local offset = -20
-    for _, notif in ipairs(self.Active) do
-        if notif.IsAlive then
-            offset = offset - 140  -- Height + spacing
+    -- ✅ Notifikasi lama di atas, baru di bawah
+    for i = #self.Active, 1, -1 do
+        local notif = self.Active[i]
+        if notif.IsAlive and notif.Height then
+            offset = offset - notif.Height - self.Spacing
         end
     end
     return offset
 end
 
 function NotificationStack:Add(notif)
-    table.insert(self.Active, notif)
+    -- ✅ Insert di awal array (notif baru jadi index 1)
+    table.insert(self.Active, 1, notif)
     self:Update()
 end
 
@@ -43,12 +53,15 @@ end
 function NotificationStack:Update()
     local TweenService = game:GetService("TweenService")
     local offset = -20
-    for _, notif in ipairs(self.Active) do
-        if notif.IsAlive and notif.Frame then
+    
+    -- ✅ Update dari belakang ke depan (lama ke baru)
+    for i = #self.Active, 1, -1 do
+        local notif = self.Active[i]
+        if notif.IsAlive and notif.Frame and notif.Height then
             TweenService:Create(notif.Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
                 Position = UDim2.new(1, -20, 1, offset)
             }):Play()
-            offset = offset - 140
+            offset = offset - notif.Height - self.Spacing
         end
     end
 end
@@ -57,9 +70,14 @@ end
 return function(config)
     config = config or {}
     
+    -- ✅ Get size preset
+    local sizeKey = config.Size or "medium"
+    local sizeData = SizePresets[sizeKey] or SizePresets.medium
+    
     local notifData = {
         IsAlive = true,
-        Frame = nil
+        Frame = nil,
+        Height = sizeData.Height
     }
     
     -- ==========================================
@@ -166,7 +184,7 @@ return function(config)
         NotificationStack:Remove(notifData)
 
         local fadeOut = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Position = UDim2.new(1, 50, 1, -20)
+            Position = UDim2.new(1, 50, 1, LMG2L["Frame_2"].Position.Y.Offset)
         })
 
         for _, child in pairs(LMG2L["Frame_2"]:GetDescendants()) do
@@ -218,6 +236,9 @@ return function(config)
     -- EXTERNAL CONFIGURATION (Read-only modification)
     -- ==========================================
     
+    -- ✅ Apply size
+    LMG2L["Frame_2"].Size = UDim2.new(0, sizeData.Width, 0, sizeData.Height)
+    
     if config.Text then
         LMG2L["NotificationText_7"].Text = config.Text
     end
@@ -236,17 +257,14 @@ return function(config)
     -- LIFECYCLE (Internal - Tidak Diubah)
     -- ==========================================
     
-    -- ✅ FIX: Get position SEBELUM add ke stack
     local targetYOffset = NotificationStack:GetOffset()
     
     notifData.Frame = LMG2L["Frame_2"]
     NotificationStack:Add(notifData)
     
-    -- Start dari kanan (offscreen)
     LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, targetYOffset)
     task.wait(0.1)
 
-    -- Slide in ke posisi final
     local slideIn = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Position = UDim2.new(1, -20, 1, targetYOffset)
     })
