@@ -6,12 +6,12 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - AUTO-WRAP FIXED
+designed using localmaze gui creator - COMPACT WIDTH
 ]=]
 
 local TextService = game:GetService("TextService")
 
--- ✅ NOTIFICATION STACK (External Layer)
+-- ✅ NOTIFICATION STACK
 local NotificationStack = {
     Active = {},
     Spacing = 10
@@ -58,40 +58,36 @@ function NotificationStack:Update()
     end
 end
 
--- ✅ CALCULATE TEXT SIZE (FIXED - Force wrap to bottom)
+-- ✅ CALCULATE SIZE (WIDTH LEBIH PENDEK!)
 local function CalculateSize(text, title)
-    -- ✅ Fixed width untuk paksa text wrap ke bawah
-    local fixedWidth = 10  -- Width tetap, tidak dinamis
+    local fixedWidth = 260  -- ✅ Lebih pendek dari 320!
     local padding = 20
     local headerHeight = 35
     local progressHeight = 3
     local textTopPadding = 5
     local textBottomPadding = 10
     
-    -- Calculate wrapped text height
     local textParams = Instance.new("GetTextBoundsParams")
     textParams.Text = text
     textParams.Font = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
     textParams.Size = 14
-    textParams.Width = fixedWidth - (padding * 2)  -- Width yang sempit agar wrap
+    textParams.Width = fixedWidth - (padding * 2)
     
     local wrappedSize = TextService:GetTextBoundsAsync(textParams)
     
-    -- Final height berdasarkan text yang wrapped
     local finalHeight = headerHeight + progressHeight + wrappedSize.Y + textTopPadding + textBottomPadding
-    finalHeight = math.max(finalHeight, 85)  -- Minimum height
+    finalHeight = math.max(finalHeight, 85)
     
     return Vector2.new(fixedWidth, finalHeight)
 end
 
--- ✅ NOTIFICATION FACTORY (External Layer)
+-- ✅ NOTIFICATION FACTORY
 return function(config)
     config = config or {}
     
     local text = config.Text or "Notification"
     local title = config.Title or "Notification"
     
-    -- ✅ Calculate dynamic size
     local calculatedSize = CalculateSize(text, title)
     
     local notifData = {
@@ -99,10 +95,6 @@ return function(config)
         Frame = nil,
         Height = calculatedSize.Y
     }
-    
-    -- ==========================================
-    -- GUI TEMPLATE (TIDAK DIUBAH)
-    -- ==========================================
     
     local LMG2L = {};
     local TweenService = game:GetService("TweenService")
@@ -179,7 +171,7 @@ return function(config)
     LMG2L["ProgressBar_12"]["Position"] = UDim2.new(0, 0, 0, 0);
 
     LMG2L["NotificationText_7"] = Instance.new("TextLabel", LMG2L["Frame_2"]);
-    LMG2L["NotificationText_7"]["TextWrapped"] = true;  -- ✅ Force wrap
+    LMG2L["NotificationText_7"]["TextWrapped"] = true;
     LMG2L["NotificationText_7"]["BorderSizePixel"] = 0;
     LMG2L["NotificationText_7"]["TextSize"] = 14;
     LMG2L["NotificationText_7"]["TextXAlignment"] = Enum.TextXAlignment.Left;
@@ -187,10 +179,10 @@ return function(config)
     LMG2L["NotificationText_7"]["BackgroundColor3"] = Color3.fromRGB(35, 35, 40);
     LMG2L["NotificationText_7"]["FontFace"] = Font.new([[rbxasset://fonts/families/GothamSSm.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal);
     LMG2L["NotificationText_7"]["TextColor3"] = Color3.fromRGB(220, 220, 220);
-    LMG2L["NotificationText_7"]["Size"] = UDim2.new(1, -40, 1, -48);  -- ✅ Fixed size untuk text area
+    LMG2L["NotificationText_7"]["Size"] = UDim2.new(1, -40, 1, -48);
     LMG2L["NotificationText_7"]["Text"] = [[This is an example notification with improved UI design. It supports multiple lines and looks modern!]];
     LMG2L["NotificationText_7"]["Name"] = [[NotificationText]];
-    LMG2L["NotificationText_7"]["Position"] = UDim2.new(0, 20, 0, 43);  -- ✅ Padding dari kiri
+    LMG2L["NotificationText_7"]["Position"] = UDim2.new(0, 20, 0, 43);
     LMG2L["NotificationText_7"]["BackgroundTransparency"] = 1;
 
     LMG2L["UICorner_8"] = Instance.new("UICorner", LMG2L["NotificationText_7"]);
@@ -252,11 +244,7 @@ return function(config)
 
     LMG2L["TextButton_6"].MouseButton1Click:Connect(closeNotification)
 
-    -- ==========================================
-    -- EXTERNAL CONFIGURATION
-    -- ==========================================
-    
-    -- ✅ Apply dynamic size
+    -- ✅ Apply dynamic size (WIDTH 260px!)
     LMG2L["Frame_2"].Size = UDim2.new(0, calculatedSize.X, 0, calculatedSize.Y)
     
     if config.Text then
@@ -272,10 +260,6 @@ return function(config)
     end
     
     local duration = config.Duration or 5
-    
-    -- ==========================================
-    -- LIFECYCLE
-    -- ==========================================
     
     local targetYOffset = NotificationStack:GetOffset()
     
