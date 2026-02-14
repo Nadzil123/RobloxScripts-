@@ -6,7 +6,7 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - AUTO-SIZE VERSION
+designed using localmaze gui creator - AUTO-WRAP FIXED
 ]=]
 
 local TextService = game:GetService("TextService")
@@ -58,47 +58,30 @@ function NotificationStack:Update()
     end
 end
 
--- ✅ CALCULATE TEXT SIZE
+-- ✅ CALCULATE TEXT SIZE (FIXED - Force wrap to bottom)
 local function CalculateSize(text, title)
-    -- Base measurements
-    local minWidth = 250
-    local maxWidth = 400
-    local padding = 40  -- Left + right padding
+    -- ✅ Fixed width untuk paksa text wrap ke bawah
+    local fixedWidth = 320  -- Width tetap, tidak dinamis
+    local padding = 20
     local headerHeight = 35
     local progressHeight = 3
-    local textPadding = 20
+    local textTopPadding = 5
+    local textBottomPadding = 10
     
-    -- Calculate title width
-    local titleParams = Instance.new("GetTextBoundsParams")
-    titleParams.Text = "  " .. title
-    titleParams.Font = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
-    titleParams.Size = 16
-    titleParams.Width = maxWidth
-    
-    local titleSize = TextService:GetTextBoundsAsync(titleParams)
-    
-    -- Calculate text width
+    -- Calculate wrapped text height
     local textParams = Instance.new("GetTextBoundsParams")
     textParams.Text = text
     textParams.Font = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
     textParams.Size = 14
-    textParams.Width = maxWidth - padding
+    textParams.Width = fixedWidth - (padding * 2)  -- Width yang sempit agar wrap
     
-    local textSize = TextService:GetTextBoundsAsync(textParams)
-    
-    -- Determine final width (based on longest content)
-    local contentWidth = math.max(titleSize.X + 50, textSize.X + padding)
-    local finalWidth = math.clamp(contentWidth, minWidth, maxWidth)
-    
-    -- Calculate wrapped text height
-    textParams.Width = finalWidth - padding
     local wrappedSize = TextService:GetTextBoundsAsync(textParams)
     
-    -- Final height
-    local finalHeight = headerHeight + progressHeight + wrappedSize.Y + textPadding + 10
-    finalHeight = math.max(finalHeight, 90)  -- Minimum height
+    -- Final height berdasarkan text yang wrapped
+    local finalHeight = headerHeight + progressHeight + wrappedSize.Y + textTopPadding + textBottomPadding
+    finalHeight = math.max(finalHeight, 85)  -- Minimum height
     
-    return Vector2.new(finalWidth, finalHeight)
+    return Vector2.new(fixedWidth, finalHeight)
 end
 
 -- ✅ NOTIFICATION FACTORY (External Layer)
@@ -196,7 +179,7 @@ return function(config)
     LMG2L["ProgressBar_12"]["Position"] = UDim2.new(0, 0, 0, 0);
 
     LMG2L["NotificationText_7"] = Instance.new("TextLabel", LMG2L["Frame_2"]);
-    LMG2L["NotificationText_7"]["TextWrapped"] = true;
+    LMG2L["NotificationText_7"]["TextWrapped"] = true;  -- ✅ Force wrap
     LMG2L["NotificationText_7"]["BorderSizePixel"] = 0;
     LMG2L["NotificationText_7"]["TextSize"] = 14;
     LMG2L["NotificationText_7"]["TextXAlignment"] = Enum.TextXAlignment.Left;
@@ -204,10 +187,10 @@ return function(config)
     LMG2L["NotificationText_7"]["BackgroundColor3"] = Color3.fromRGB(35, 35, 40);
     LMG2L["NotificationText_7"]["FontFace"] = Font.new([[rbxasset://fonts/families/GothamSSm.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal);
     LMG2L["NotificationText_7"]["TextColor3"] = Color3.fromRGB(220, 220, 220);
-    LMG2L["NotificationText_7"]["Size"] = UDim2.new(1, -20, 1, -48);
+    LMG2L["NotificationText_7"]["Size"] = UDim2.new(1, -40, 1, -48);  -- ✅ Fixed size untuk text area
     LMG2L["NotificationText_7"]["Text"] = [[This is an example notification with improved UI design. It supports multiple lines and looks modern!]];
     LMG2L["NotificationText_7"]["Name"] = [[NotificationText]];
-    LMG2L["NotificationText_7"]["Position"] = UDim2.new(0, 10, 0, 43);
+    LMG2L["NotificationText_7"]["Position"] = UDim2.new(0, 20, 0, 43);  -- ✅ Padding dari kiri
     LMG2L["NotificationText_7"]["BackgroundTransparency"] = 1;
 
     LMG2L["UICorner_8"] = Instance.new("UICorner", LMG2L["NotificationText_7"]);
