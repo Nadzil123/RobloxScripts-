@@ -6,7 +6,7 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - CUSTOM SIZE
+designed using localmaze gui creator - SMART HEIGHT
 ]=]
 
 local TextService = game:GetService("TextService")
@@ -58,8 +58,8 @@ function NotificationStack:Update()
     end
 end
 
--- ✅ AUTO-CALCULATE SIZE (jika Width/Height tidak di-set)
-local function CalculateSize(text, width)
+-- ✅ AUTO-CALCULATE MINIMUM HEIGHT NEEDED
+local function CalculateMinHeight(text, width)
     local padding = 20
     local headerHeight = 35
     local progressHeight = 3
@@ -74,10 +74,10 @@ local function CalculateSize(text, width)
     
     local wrappedSize = TextService:GetTextBoundsAsync(textParams)
     
-    local finalHeight = headerHeight + progressHeight + wrappedSize.Y + textTopPadding + textBottomPadding
-    finalHeight = math.max(finalHeight, 85)
+    local minHeight = headerHeight + progressHeight + wrappedSize.Y + textTopPadding + textBottomPadding
+    minHeight = math.max(minHeight, 85)  -- Absolute minimum
     
-    return finalHeight
+    return minHeight
 end
 
 -- ✅ NOTIFICATION FACTORY
@@ -87,9 +87,12 @@ return function(config)
     local text = config.Text or "Notification"
     local title = config.Title or "Notification"
     
-    -- ✅ MANUAL WIDTH/HEIGHT dari config, atau default auto
+    -- ✅ SMART SIZE CALCULATION
     local finalWidth = config.Width or 260  -- Default 260px
-    local finalHeight = config.Height or CalculateSize(text, finalWidth)  -- Auto-calculate jika tidak di-set
+    local minHeightNeeded = CalculateMinHeight(text, finalWidth)  -- Calculate minimum
+    
+    -- ✅ Take the LARGER of: user's Height OR minimum needed
+    local finalHeight = config.Height and math.max(config.Height, minHeightNeeded) or minHeightNeeded
     
     local notifData = {
         IsAlive = true,
@@ -245,7 +248,7 @@ return function(config)
 
     LMG2L["TextButton_6"].MouseButton1Click:Connect(closeNotification)
 
-    -- ✅ Apply custom size
+    -- ✅ Apply smart size
     LMG2L["Frame_2"].Size = UDim2.new(0, finalWidth, 0, finalHeight)
     
     if config.Text then
