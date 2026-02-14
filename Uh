@@ -11,64 +11,62 @@ designed using localmaze gui creator - CONFIGURABLE VERSION
 
 local TweenService = game:GetService("TweenService")
 
--- ✅ NOTIFICATION STACK MANAGER (Auto-stacking notifications)
+-- ✅ NOTIFICATION STACK (untuk auto-stack kalau spam)
 local NotificationStack = {
-    ActiveNotifications = {},
-    Spacing = 10,
-    StartY = -20
+    Active = {},
+    Spacing = 10
 }
 
-function NotificationStack:GetNextPosition()
-    local totalHeight = self.StartY
-    for _, notif in ipairs(self.ActiveNotifications) do
-        if notif and notif.Frame and notif.Frame.Parent then
-            totalHeight = totalHeight - notif.Frame.Size.Y.Offset - self.Spacing
+function NotificationStack:GetYOffset()
+    local offset = -20
+    for _, notif in ipairs(self.Active) do
+        if notif.Frame and notif.Frame.Parent then
+            offset = offset - notif.Frame.Size.Y.Offset - self.Spacing
         end
     end
-    return totalHeight
+    return offset
 end
 
-function NotificationStack:Add(notification)
-    table.insert(self.ActiveNotifications, notification)
-    self:UpdatePositions()
+function NotificationStack:Add(notif)
+    table.insert(self.Active, notif)
+    self:UpdateAll()
 end
 
-function NotificationStack:Remove(notification)
-    for i, notif in ipairs(self.ActiveNotifications) do
-        if notif == notification then
-            table.remove(self.ActiveNotifications, i)
+function NotificationStack:Remove(notif)
+    for i, n in ipairs(self.Active) do
+        if n == notif then
+            table.remove(self.Active, i)
             break
         end
     end
-    self:UpdatePositions()
+    self:UpdateAll()
 end
 
-function NotificationStack:UpdatePositions()
-    local yOffset = self.StartY
-    for _, notif in ipairs(self.ActiveNotifications) do
-        if notif and notif.Frame and notif.Frame.Parent then
-            local targetPos = UDim2.new(1, -20, 1, yOffset)
-            TweenService:Create(notif.Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                Position = targetPos
+function NotificationStack:UpdateAll()
+    local offset = -20
+    for _, notif in ipairs(self.Active) do
+        if notif.Frame and notif.Frame.Parent then
+            TweenService:Create(notif.Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+                Position = UDim2.new(1, -20, 1, offset)
             }):Play()
-            yOffset = yOffset - notif.Frame.Size.Y.Offset - self.Spacing
+            offset = offset - notif.Frame.Size.Y.Offset - self.Spacing
         end
     end
 end
 
--- ✅ MAIN FUNCTION (Wrapped untuk support config)
+-- ✅ MAIN FUNCTION
 return function(config)
     config = config or {}
     
-    -- Default values
+    -- Config
     local duration = config.Duration or 5
-    local notifText = config.Text or [[This is an example notification with improved UI design. It supports multiple lines and looks modern!]]
-    local notifTitle = config.Title or [[Notification]]
+    local text = config.Text or [[This is an example notification with improved UI design. It supports multiple lines and looks modern!]]
+    local title = config.Title or [[Notification]]
     local barColor = config.BarColor or Color3.fromRGB(50, 200, 100)
-    local onCloseCallback = config.OnClose
+    local onClose = config.OnClose
     
     local LMG2L = {};
-    local isClosing = false  -- ✅ Flag to prevent double-close
+    local isClosing = false
 
     -- Players.nadzil657.PlayerGui.ScreenGui
     LMG2L["ScreenGui_1"] = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui"));
@@ -110,7 +108,7 @@ return function(config)
     LMG2L["NotificationLabel_4"]["TextColor3"] = Color3.fromRGB(255, 255, 255);
     LMG2L["NotificationLabel_4"]["Size"] = UDim2.new(1, 0, 0, 35);
     LMG2L["NotificationLabel_4"]["Position"] = UDim2.new(0, 0, 0, 0);
-    LMG2L["NotificationLabel_4"]["Text"] = [[  ]] .. notifTitle;  -- ✅ Use config
+    LMG2L["NotificationLabel_4"]["Text"] = [[  ]] .. title;
     LMG2L["NotificationLabel_4"]["Name"] = [[NotificationLabel]];
     LMG2L["NotificationLabel_4"]["TextXAlignment"] = Enum.TextXAlignment.Left;
 
@@ -145,7 +143,7 @@ return function(config)
     -- Progress Bar (Green)
     LMG2L["ProgressBar_12"] = Instance.new("Frame", LMG2L["ProgressContainer_13"]);
     LMG2L["ProgressBar_12"]["BorderSizePixel"] = 0;
-    LMG2L["ProgressBar_12"]["BackgroundColor3"] = barColor;  -- ✅ Use config
+    LMG2L["ProgressBar_12"]["BackgroundColor3"] = barColor;
     LMG2L["ProgressBar_12"]["Size"] = UDim2.new(1, 0, 1, 0);
     LMG2L["ProgressBar_12"]["Position"] = UDim2.new(0, 0, 0, 0);
 
@@ -160,7 +158,7 @@ return function(config)
     LMG2L["NotificationText_7"]["FontFace"] = Font.new([[rbxasset://fonts/families/GothamSSm.json]], Enum.FontWeight.Regular, Enum.FontStyle.Normal);
     LMG2L["NotificationText_7"]["TextColor3"] = Color3.fromRGB(220, 220, 220);
     LMG2L["NotificationText_7"]["Size"] = UDim2.new(1, -20, 1, -48);
-    LMG2L["NotificationText_7"]["Text"] = notifText;  -- ✅ Use config
+    LMG2L["NotificationText_7"]["Text"] = text;
     LMG2L["NotificationText_7"]["Name"] = [[NotificationText]];
     LMG2L["NotificationText_7"]["Position"] = UDim2.new(0, 10, 0, 43);
     LMG2L["NotificationText_7"]["BackgroundTransparency"] = 1;
@@ -173,17 +171,15 @@ return function(config)
 
     -- Close function with proper guards
     local function closeNotification()
-        if isClosing then return end  -- ✅ Prevent double execution
+        if isClosing then return end
         isClosing = true
         
-        -- ✅ Remove from stack
         NotificationStack:Remove(LMG2L)
 
         local fadeOut = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Position = UDim2.new(1, 50, 1, LMG2L["Frame_2"].Position.Y.Offset)  -- ✅ Keep Y position
+            Position = UDim2.new(1, 50, 1, -20)
         })
 
-        -- ✅ Properly handle different GUI object types
         for _, child in pairs(LMG2L["Frame_2"]:GetDescendants()) do
             if child:IsA("TextLabel") or child:IsA("TextButton") then
                 TweenService:Create(child, TweenInfo.new(0.3), {
@@ -204,9 +200,8 @@ return function(config)
         fadeOut:Play()
         fadeOut.Completed:Wait()
         
-        -- ✅ Call OnClose callback
-        if onCloseCallback then
-            onCloseCallback()
+        if onClose then
+            onClose()
         end
         
         LMG2L["ScreenGui_1"]:Destroy()
@@ -232,16 +227,16 @@ return function(config)
     -- Close button connection
     LMG2L["TextButton_6"].MouseButton1Click:Connect(closeNotification)
     
-    -- ✅ Add to stack first
-    LMG2L.Frame = LMG2L["Frame_2"]  -- Reference untuk stack manager
+    -- ✅ Add to stack
+    LMG2L.Frame = LMG2L["Frame_2"]
     NotificationStack:Add(LMG2L)
 
     -- Slide in animation
-    LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, NotificationStack:GetNextPosition())
+    LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, NotificationStack:GetYOffset())
     task.wait(0.1)
 
     local slideIn = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Position = UDim2.new(1, -20, 1, NotificationStack:GetNextPosition())  -- ✅ Use stack position
+        Position = UDim2.new(1, -20, 1, NotificationStack:GetYOffset())
     })
     slideIn:Play()
 
@@ -251,10 +246,10 @@ return function(config)
     task.spawn(function()
         while not isClosing do
             local elapsed = tick() - startTime
-            local progress = 1 - (elapsed / duration)  -- ✅ Use config duration
+            local progress = 1 - (elapsed / duration)
 
             if progress <= 0 then
-                LMG2L["ProgressBar_12"].Size = UDim2.new(0, 0, 1, 0)  -- ✅ Force to zero
+                LMG2L["ProgressBar_12"].Size = UDim2.new(0, 0, 1, 0)
                 break
             end
 
