@@ -6,7 +6,7 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - NEW AT BOTTOM
+designed using localmaze gui creator - FIXED STACK
 ]=]
 
 local TextService = game:GetService("TextService")
@@ -17,15 +17,9 @@ local NotificationStack = {
     Spacing = 10
 }
 
-function NotificationStack:GetOffset()
-    -- ✅ Notif baru selalu di -20 (bawah)
-    return -20
-end
-
 function NotificationStack:Add(notif)
-    -- ✅ Insert di AKHIR array (notif baru jadi yang terakhir)
     table.insert(self.Active, notif)
-    self:Update()
+    self:UpdateAll()
 end
 
 function NotificationStack:Remove(notif)
@@ -35,22 +29,25 @@ function NotificationStack:Remove(notif)
             break
         end
     end
-    self:Update()
+    self:UpdateAll()
 end
 
-function NotificationStack:Update()
+function NotificationStack:UpdateAll()
     local TweenService = game:GetService("TweenService")
     
-    -- ✅ Update dari BELAKANG ke DEPAN (terbaru ke terlama)
-    -- Notif terbaru (index terakhir) di -20
-    -- Notif lama (index awal) naik ke atas
+    -- ✅ Loop dari BELAKANG ke DEPAN
+    -- Index terakhir = notif terbaru = di -20 (bawah)
+    -- Index awal = notif lama = di atas
     local offset = -20
     for i = #self.Active, 1, -1 do
         local notif = self.Active[i]
         if notif.IsAlive and notif.Frame and notif.Height then
-            TweenService:Create(notif.Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-                Position = UDim2.new(1, -20, 1, offset)
-            }):Play()
+            -- ✅ Skip notif yang belum fully initialized
+            if notif.Initialized then
+                TweenService:Create(notif.Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+                    Position = UDim2.new(1, -20, 1, offset)
+                }):Play()
+            end
             offset = offset - notif.Height - self.Spacing
         end
     end
@@ -92,7 +89,8 @@ return function(config)
     local notifData = {
         IsAlive = true,
         Frame = nil,
-        Height = finalHeight
+        Height = finalHeight,
+        Initialized = false  -- ✅ Flag untuk tahu kapan notif siap
     }
     
     local LMG2L = {};
@@ -260,17 +258,23 @@ return function(config)
     
     local duration = config.Duration or 5
     
-    -- ✅ Notif baru selalu muncul di -20 (bawah)
-    local targetYOffset = NotificationStack:GetOffset()
-    
+    -- ✅ FIXED LIFECYCLE
     notifData.Frame = LMG2L["Frame_2"]
-    NotificationStack:Add(notifData)  -- ✅ Ini akan push notif lama ke atas
     
-    LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, targetYOffset)
+    -- 1. Set posisi awal di kanan (offscreen)
+    LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, -20)
+    
+    -- 2. Add ke stack (ini akan push notif lama ke atas!)
+    NotificationStack:Add(notifData)
+    
     task.wait(0.1)
-
+    
+    -- 3. Mark sebagai initialized
+    notifData.Initialized = true
+    
+    -- 4. Slide in dari kanan ke posisi -20
     local slideIn = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Position = UDim2.new(1, -20, 1, targetYOffset)
+        Position = UDim2.new(1, -20, 1, -20)
     })
     slideIn:Play()
 
