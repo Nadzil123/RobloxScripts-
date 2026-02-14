@@ -1,0 +1,925 @@
+--[=[
+ ███████╗██╗███╗   ███╗██████╗ ██╗     ███████╗    ██╗  ██╗
+ ██╔════╝██║████╗ ████║██╔══██╗██║     ██╔════╝    ╚██╗██╔╝
+ ███████╗██║██╔████╔██║██████╔╝██║     █████╗       ╚███╔╝ 
+ ╚════██║██║██║╚██╔╝██║██╔═══╝ ██║     ██╔══╝       ██╔██╗ 
+ ███████║██║██║ ╚═╝ ██║██║     ███████╗███████╗    ██╔╝ ██╗
+ ╚══════╝╚═╝╚═╝     ╚═╝╚═╝     ╚══════╝╚══════╝    ╚═╝  ╚═╝
+ 
+ Full Featured Executor v5.2 | @uniquadev
+ CLIPBOARD & TAB CLOSE FIXED! 🔧
+]=]
+
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local LMG2L = {}
+
+-- TAB SYSTEM VARIABLES
+local tabs = {}
+local activeTabIndex = 1
+local savedPosition = nil
+
+-- SCRIPT HUB DATA
+local scriptHub = {
+    {name = "Infinite Yield", code = "loadstring(game:HttpGet('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'))()"},
+    {name = "Dex Explorer", code = "loadstring(game:HttpGet('https://raw.githubusercontent.com/infyiff/backup/main/dex.lua'))()"},
+    {name = "Simple Spy", code = "loadstring(game:HttpGet('https://raw.githubusercontent.com/exxtremestuffs/SimpleSpySource/master/SimpleSpy.lua'))()"},
+}
+
+-- Utility Functions
+local function Tween(object, properties, duration, style, direction)
+    style = style or Enum.EasingStyle.Quart
+    direction = direction or Enum.EasingDirection.Out
+    TweenService:Create(object, TweenInfo.new(duration, style, direction), properties):Play()
+end
+
+local function RippleEffect(button)
+    button.ClipsDescendants = true
+    button.MouseButton1Click:Connect(function()
+        local ripple = Instance.new("ImageLabel")
+        ripple.Image = "rbxassetid://266543268"
+        ripple.ImageColor3 = Color3.fromRGB(255, 255, 255)
+        ripple.ImageTransparency = 0.5
+        ripple.BackgroundTransparency = 1
+        ripple.ZIndex = 10
+        ripple.Size = UDim2.new(0, 0, 0, 0)
+        ripple.Position = UDim2.new(0.5, 0, 0.5, 0)
+        ripple.AnchorPoint = Vector2.new(0.5, 0.5)
+        ripple.Parent = button
+        
+        Tween(ripple, {Size = UDim2.new(2, 0, 2, 0), ImageTransparency = 1}, 0.6)
+        task.wait(0.6)
+        ripple:Destroy()
+    end)
+end
+
+local function MakeDraggable(frame, dragHandle)
+    local dragging = false
+    local dragInput, dragStart, startPos
+    
+    dragHandle = dragHandle or frame
+    
+    local function update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+        
+        if frame.Name == "MainFrame" then
+            savedPosition = frame.Position
+        end
+    end
+    
+    dragHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    dragHandle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+-- ScreenGui
+LMG2L["ScreenGui"] = Instance.new("ScreenGui")
+LMG2L["ScreenGui"].Name = "SimpleXExecutor"
+LMG2L["ScreenGui"].ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+LMG2L["ScreenGui"].ResetOnSpawn = false
+LMG2L["ScreenGui"].Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+-- Main Container
+local MainFrame = Instance.new("CanvasGroup")
+MainFrame.Name = "MainFrame"
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -240, 0.5, -145)
+MainFrame.Size = UDim2.new(0, 480, 0, 290)
+MainFrame.Visible = false
+MainFrame.GroupTransparency = 1
+MainFrame.Parent = LMG2L["ScreenGui"]
+
+savedPosition = MainFrame.Position
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 12)
+MainCorner.Parent = MainFrame
+
+-- Gradient Border
+local Stroke = Instance.new("UIStroke")
+Stroke.Color = Color3.fromRGB(255, 120, 80)
+Stroke.Thickness = 2
+Stroke.Transparency = 0.2
+Stroke.Parent = MainFrame
+
+local StrokeGradient = Instance.new("UIGradient")
+StrokeGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 100, 60)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 140, 100)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 100, 60))
+}
+StrokeGradient.Rotation = 45
+StrokeGradient.Parent = Stroke
+
+-- Animated gradient border
+task.spawn(function()
+    while task.wait(0.05) do
+        if StrokeGradient then
+            StrokeGradient.Rotation = (StrokeGradient.Rotation + 1) % 360
+        end
+    end
+end)
+
+-- Tab Bar
+local TabBar = Instance.new("Frame")
+TabBar.Name = "TabBar"
+TabBar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+TabBar.BorderSizePixel = 0
+TabBar.Size = UDim2.new(1, 0, 0, 32)
+TabBar.Parent = MainFrame
+
+local TabBarCorner = Instance.new("UICorner")
+TabBarCorner.CornerRadius = UDim.new(0, 12)
+TabBarCorner.Parent = TabBar
+
+local TabBarFix = Instance.new("Frame")
+TabBarFix.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+TabBarFix.BorderSizePixel = 0
+TabBarFix.Position = UDim2.new(0, 0, 0.6, 0)
+TabBarFix.Size = UDim2.new(1, 0, 0.5, 0)
+TabBarFix.Parent = TabBar
+
+-- Tab Container (SCROLLING!)
+local TabContainer = Instance.new("ScrollingFrame")
+TabContainer.Name = "TabContainer"
+TabContainer.BackgroundTransparency = 1
+TabContainer.BorderSizePixel = 0
+TabContainer.Position = UDim2.new(0, 5, 0, 4)
+TabContainer.Size = UDim2.new(1, -95, 0, 24)
+TabContainer.CanvasSize = UDim2.new(0, 0, 0, 24)
+TabContainer.ScrollBarThickness = 0
+TabContainer.ScrollingDirection = Enum.ScrollingDirection.X
+TabContainer.Parent = TabBar
+
+local TabListLayout = Instance.new("UIListLayout")
+TabListLayout.FillDirection = Enum.FillDirection.Horizontal
+TabListLayout.Padding = UDim.new(0, 3)
+TabListLayout.Parent = TabContainer
+
+-- Add Tab Button
+local AddTab = Instance.new("TextButton")
+AddTab.Name = "AddTab"
+AddTab.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+AddTab.BorderSizePixel = 0
+AddTab.Position = UDim2.new(1, -87, 0, 4)
+AddTab.Size = UDim2.new(0, 24, 0, 24)
+AddTab.Font = Enum.Font.GothamBold
+AddTab.Text = "+"
+AddTab.TextColor3 = Color3.fromRGB(150, 150, 170)
+AddTab.TextSize = 13
+AddTab.Parent = TabBar
+
+local AddTabCorner = Instance.new("UICorner")
+AddTabCorner.CornerRadius = UDim.new(0, 6)
+AddTabCorner.Parent = AddTab
+
+-- Window Controls
+local ControlsFrame = Instance.new("Frame")
+ControlsFrame.Name = "Controls"
+ControlsFrame.BackgroundTransparency = 1
+ControlsFrame.Position = UDim2.new(1, -58, 0, 4)
+ControlsFrame.Size = UDim2.new(0, 52, 0, 24)
+ControlsFrame.Parent = TabBar
+
+-- Minimize Button
+local MinimizeBtn = Instance.new("TextButton")
+MinimizeBtn.Name = "MinimizeBtn"
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+MinimizeBtn.BorderSizePixel = 0
+MinimizeBtn.Size = UDim2.new(0, 24, 0, 24)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.Text = "—"
+MinimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
+MinimizeBtn.TextSize = 10
+MinimizeBtn.Parent = ControlsFrame
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 6)
+MinCorner.Parent = MinimizeBtn
+
+-- Close Button
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Name = "CloseBtn"
+CloseBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Position = UDim2.new(0, 28, 0, 0)
+CloseBtn.Size = UDim2.new(0, 24, 0, 24)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Text = "×"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 14
+CloseBtn.Parent = ControlsFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseBtn
+
+-- Content Area
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "Content"
+ContentFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+ContentFrame.BorderSizePixel = 0
+ContentFrame.Position = UDim2.new(0, 0, 0, 32)
+ContentFrame.Size = UDim2.new(1, 0, 1, -32)
+ContentFrame.Parent = MainFrame
+
+-- Editor Container
+local EditorContainer = Instance.new("Frame")
+EditorContainer.Name = "EditorContainer"
+EditorContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+EditorContainer.BorderSizePixel = 0
+EditorContainer.Position = UDim2.new(0, 8, 0, 8)
+EditorContainer.Size = UDim2.new(0, 300, 1, -52)
+EditorContainer.Parent = ContentFrame
+
+local EditorCorner = Instance.new("UICorner")
+EditorCorner.CornerRadius = UDim.new(0, 8)
+EditorCorner.Parent = EditorContainer
+
+-- Line Numbers
+local LineNumbers = Instance.new("Frame")
+LineNumbers.Name = "LineNumbers"
+LineNumbers.BackgroundColor3 = Color3.fromRGB(10, 10, 13)
+LineNumbers.BorderSizePixel = 0
+LineNumbers.Size = UDim2.new(0, 32, 1, 0)
+LineNumbers.Parent = EditorContainer
+
+local LineNumCorner = Instance.new("UICorner")
+LineNumCorner.CornerRadius = UDim.new(0, 8)
+LineNumCorner.Parent = LineNumbers
+
+local LineNumFix = Instance.new("Frame")
+LineNumFix.BackgroundColor3 = Color3.fromRGB(10, 10, 13)
+LineNumFix.BorderSizePixel = 0
+LineNumFix.Position = UDim2.new(1, -5, 0, 0)
+LineNumFix.Size = UDim2.new(0, 5, 1, 0)
+LineNumFix.Parent = LineNumbers
+
+local LineNumText = Instance.new("TextLabel")
+LineNumText.BackgroundTransparency = 1
+LineNumText.Size = UDim2.new(1, -4, 1, -5)
+LineNumText.Position = UDim2.new(0, 0, 0, 3)
+LineNumText.Font = Enum.Font.Code
+LineNumText.Text = "1\n2\n3\n4\n5\n6\n7"
+LineNumText.TextColor3 = Color3.fromRGB(100, 100, 120)
+LineNumText.TextSize = 11
+LineNumText.TextXAlignment = Enum.TextXAlignment.Center
+LineNumText.TextYAlignment = Enum.TextYAlignment.Top
+LineNumText.Parent = LineNumbers
+
+-- Code Editor
+local CodeBox = Instance.new("TextBox")
+CodeBox.Name = "CodeBox"
+CodeBox.BackgroundTransparency = 1
+CodeBox.Position = UDim2.new(0, 36, 0, 4)
+CodeBox.Size = UDim2.new(1, -40, 1, -8)
+CodeBox.ClearTextOnFocus = false
+CodeBox.Font = Enum.Font.Code
+CodeBox.MultiLine = true
+CodeBox.TextWrapped = true
+CodeBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 120)
+CodeBox.PlaceholderText = "-- Enter your Lua code here..."
+CodeBox.Text = ""
+CodeBox.TextColor3 = Color3.fromRGB(220, 220, 240)
+CodeBox.TextSize = 12
+CodeBox.TextXAlignment = Enum.TextXAlignment.Left
+CodeBox.TextYAlignment = Enum.TextYAlignment.Top
+CodeBox.Parent = EditorContainer
+
+-- 📜 SCRIPT HUB PANEL
+local ScriptHubPanel = Instance.new("Frame")
+ScriptHubPanel.Name = "ScriptHubPanel"
+ScriptHubPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+ScriptHubPanel.BorderSizePixel = 0
+ScriptHubPanel.Position = UDim2.new(0, 316, 0, 8)
+ScriptHubPanel.Size = UDim2.new(0, 156, 1, -52)
+ScriptHubPanel.Parent = ContentFrame
+
+local HubCorner = Instance.new("UICorner")
+HubCorner.CornerRadius = UDim.new(0, 8)
+HubCorner.Parent = ScriptHubPanel
+
+-- Hub Header
+local HubHeader = Instance.new("Frame")
+HubHeader.Name = "Header"
+HubHeader.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+HubHeader.BorderSizePixel = 0
+HubHeader.Size = UDim2.new(1, 0, 0, 30)
+HubHeader.Parent = ScriptHubPanel
+
+local HubHeaderCorner = Instance.new("UICorner")
+HubHeaderCorner.CornerRadius = UDim.new(0, 8)
+HubHeaderCorner.Parent = HubHeader
+
+local HubHeaderFix = Instance.new("Frame")
+HubHeaderFix.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+HubHeaderFix.BorderSizePixel = 0
+HubHeaderFix.Position = UDim2.new(0, 0, 0.6, 0)
+HubHeaderFix.Size = UDim2.new(1, 0, 0.5, 0)
+HubHeaderFix.Parent = HubHeader
+
+local HubTitle = Instance.new("TextLabel")
+HubTitle.BackgroundTransparency = 1
+HubTitle.Size = UDim2.new(1, 0, 1, 0)
+HubTitle.Font = Enum.Font.GothamBold
+HubTitle.Text = "📜 Script Hub"
+HubTitle.TextColor3 = Color3.fromRGB(200, 200, 220)
+HubTitle.TextSize = 12
+HubTitle.Parent = HubHeader
+
+-- Hub ScrollFrame
+local HubScroll = Instance.new("ScrollingFrame")
+HubScroll.Name = "HubScroll"
+HubScroll.BackgroundTransparency = 1
+HubScroll.BorderSizePixel = 0
+HubScroll.Position = UDim2.new(0, 5, 0, 35)
+HubScroll.Size = UDim2.new(1, -10, 1, -40)
+HubScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+HubScroll.ScrollBarThickness = 3
+HubScroll.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120)
+HubScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+HubScroll.Parent = ScriptHubPanel
+
+local HubListLayout = Instance.new("UIListLayout")
+HubListLayout.Padding = UDim.new(0, 6)
+HubListLayout.Parent = HubScroll
+
+-- Create Script Hub Buttons
+for i, script in ipairs(scriptHub) do
+    local ScriptBtn = Instance.new("TextButton")
+    ScriptBtn.Name = "Script" .. i
+    ScriptBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    ScriptBtn.BorderSizePixel = 0
+    ScriptBtn.Size = UDim2.new(1, 0, 0, 32)
+    ScriptBtn.Font = Enum.Font.GothamMedium
+    ScriptBtn.Text = " 📄 " .. script.name
+    ScriptBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
+    ScriptBtn.TextSize = 10
+    ScriptBtn.TextXAlignment = Enum.TextXAlignment.Left
+    ScriptBtn.Parent = HubScroll
+    
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 6)
+    BtnCorner.Parent = ScriptBtn
+    
+    RippleEffect(ScriptBtn)
+    
+    ScriptBtn.MouseButton1Click:Connect(function()
+        CodeBox.Text = script.code
+        tabs[activeTabIndex].content = script.code
+        
+        Tween(ScriptBtn, {BackgroundColor3 = Color3.fromRGB(60, 200, 80)}, 0.2)
+        task.wait(0.3)
+        Tween(ScriptBtn, {BackgroundColor3 = Color3.fromRGB(25, 25, 30)}, 0.2)
+    end)
+    
+    ScriptBtn.MouseEnter:Connect(function()
+        Tween(ScriptBtn, {BackgroundColor3 = Color3.fromRGB(35, 35, 40)}, 0.2)
+    end)
+    ScriptBtn.MouseLeave:Connect(function()
+        Tween(ScriptBtn, {BackgroundColor3 = Color3.fromRGB(25, 25, 30)}, 0.2)
+    end)
+end
+
+-- Button Container
+local ButtonContainer = Instance.new("Frame")
+ButtonContainer.Name = "ButtonContainer"
+ButtonContainer.BackgroundTransparency = 1
+ButtonContainer.Position = UDim2.new(0, 8, 1, -40)
+ButtonContainer.Size = UDim2.new(1, -16, 0, 34)
+ButtonContainer.Parent = ContentFrame
+
+-- Execute Button
+local ExecuteBtn = Instance.new("TextButton")
+ExecuteBtn.Name = "ExecuteBtn"
+ExecuteBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+ExecuteBtn.BorderSizePixel = 0
+ExecuteBtn.Size = UDim2.new(0.31, -2, 0, 32)
+ExecuteBtn.Font = Enum.Font.GothamBold
+ExecuteBtn.Text = "EXECUTE"
+ExecuteBtn.TextColor3 = Color3.fromRGB(100, 180, 255)
+ExecuteBtn.TextSize = 11
+ExecuteBtn.Parent = ButtonContainer
+
+local ExecCorner = Instance.new("UICorner")
+ExecCorner.CornerRadius = UDim.new(0, 7)
+ExecCorner.Parent = ExecuteBtn
+
+local ExecStroke = Instance.new("UIStroke")
+ExecStroke.Color = Color3.fromRGB(60, 60, 70)
+ExecStroke.Thickness = 0.8
+ExecStroke.Parent = ExecuteBtn
+
+RippleEffect(ExecuteBtn)
+
+-- Clear Button
+local ClearBtn = Instance.new("TextButton")
+ClearBtn.Name = "ClearBtn"
+ClearBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+ClearBtn.BorderSizePixel = 0
+ClearBtn.Position = UDim2.new(0.32, 0, 0, 0)
+ClearBtn.Size = UDim2.new(0.31, -2, 0, 32)
+ClearBtn.Font = Enum.Font.GothamBold
+ClearBtn.Text = "CLEAR"
+ClearBtn.TextColor3 = Color3.fromRGB(180, 180, 200)
+ClearBtn.TextSize = 11
+ClearBtn.Parent = ButtonContainer
+
+local ClearCorner = Instance.new("UICorner")
+ClearCorner.CornerRadius = UDim.new(0, 7)
+ClearCorner.Parent = ClearBtn
+
+local ClearStroke = Instance.new("UIStroke")
+ClearStroke.Color = Color3.fromRGB(60, 60, 70)
+ClearStroke.Thickness = 0.8
+ClearStroke.Parent = ClearBtn
+
+RippleEffect(ClearBtn)
+
+-- Paste Clipboard Button
+local PasteClipBtn = Instance.new("TextButton")
+PasteClipBtn.Name = "PasteClipBtn"
+PasteClipBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+PasteClipBtn.BorderSizePixel = 0
+PasteClipBtn.Position = UDim2.new(0.64, 2, 0, 0)
+PasteClipBtn.Size = UDim2.new(0.36, -2, 0, 32)
+PasteClipBtn.Font = Enum.Font.GothamBold
+PasteClipBtn.Text = "PASTE CLIPBOARD"
+PasteClipBtn.TextColor3 = Color3.fromRGB(180, 180, 200)
+PasteClipBtn.TextSize = 10
+PasteClipBtn.Parent = ButtonContainer
+
+local PasteClipCorner = Instance.new("UICorner")
+PasteClipCorner.CornerRadius = UDim.new(0, 7)
+PasteClipCorner.Parent = PasteClipBtn
+
+local PasteClipStroke = Instance.new("UIStroke")
+PasteClipStroke.Color = Color3.fromRGB(60, 60, 70)
+PasteClipStroke.Thickness = 0.8
+PasteClipStroke.Parent = PasteClipBtn
+
+RippleEffect(PasteClipBtn)
+
+-- Toggle Button
+local ToggleBtn = Instance.new("ImageButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+ToggleBtn.Position = UDim2.new(0, 20, 0, 20)
+ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
+ToggleBtn.Image = "rbxassetid://103052002435158"
+ToggleBtn.ScaleType = Enum.ScaleType.Fit
+ToggleBtn.Parent = LMG2L["ScreenGui"]
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 12)
+ToggleCorner.Parent = ToggleBtn
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Color = Color3.fromRGB(255, 120, 80)
+ToggleStroke.Thickness = 2.5
+ToggleStroke.Parent = ToggleBtn
+
+local ToggleGlow = Instance.new("ImageLabel")
+ToggleGlow.BackgroundTransparency = 1
+ToggleGlow.Image = "rbxassetid://5554236805"
+ToggleGlow.ImageColor3 = Color3.fromRGB(255, 120, 80)
+ToggleGlow.ImageTransparency = 0.7
+ToggleGlow.Size = UDim2.new(1, 18, 1, 18)
+ToggleGlow.Position = UDim2.new(0, -9, 0, -9)
+ToggleGlow.ZIndex = -1
+ToggleGlow.Parent = ToggleBtn
+
+-- Pulsing animation
+task.spawn(function()
+    while task.wait() do
+        Tween(ToggleGlow, {ImageTransparency = 0.4}, 1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+        task.wait(1)
+        Tween(ToggleGlow, {ImageTransparency = 0.7}, 1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+        task.wait(1)
+    end
+end)
+
+-- 🎯 TAB SYSTEM FUNCTIONS
+local function createTab(tabName)
+    local tabIndex = #tabs + 1
+    
+    local tabData = {
+        name = tabName or ("Script" .. tabIndex .. ".lua"),
+        content = ""
+    }
+    table.insert(tabs, tabData)
+    
+    local TabFrame = Instance.new("Frame")
+    TabFrame.Name = "Tab" .. tabIndex
+    TabFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    TabFrame.BorderSizePixel = 0
+    TabFrame.Size = UDim2.new(0, 100, 0, 24)
+    TabFrame.Parent = TabContainer
+    
+    local TabCorner = Instance.new("UICorner")
+    TabCorner.CornerRadius = UDim.new(0, 6)
+    TabCorner.Parent = TabFrame
+    
+    local TabLabel = Instance.new("TextLabel")
+    TabLabel.BackgroundTransparency = 1
+    TabLabel.Position = UDim2.new(0, 5, 0, 0)
+    TabLabel.Size = UDim2.new(1, -28, 1, 0)
+    TabLabel.Font = Enum.Font.GothamMedium
+    TabLabel.Text = tabData.name
+    TabLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+    TabLabel.TextSize = 10
+    TabLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TabLabel.Parent = TabFrame
+    
+    -- Close Tab Button (BIGGER & HIGHER Z-INDEX!)
+    local CloseTabBtn = Instance.new("TextButton")
+    CloseTabBtn.Name = "CloseTab"
+    CloseTabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    CloseTabBtn.BorderSizePixel = 0
+    CloseTabBtn.Position = UDim2.new(1, -22, 0, 1)
+    CloseTabBtn.Size = UDim2.new(0, 22, 0, 22)
+    CloseTabBtn.Font = Enum.Font.GothamBold
+    CloseTabBtn.Text = "×"
+    CloseTabBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
+    CloseTabBtn.TextSize = 16
+    CloseTabBtn.ZIndex = 10  -- HIGHER Z-INDEX!
+    CloseTabBtn.Parent = TabFrame
+    
+    local CloseTabCorner = Instance.new("UICorner")
+    CloseTabCorner.CornerRadius = UDim.new(0, 4)
+    CloseTabCorner.Parent = CloseTabBtn
+    
+    -- Tab Click (switch tab)
+    local TabButton = Instance.new("TextButton")
+    TabButton.BackgroundTransparency = 1
+    TabButton.Size = UDim2.new(1, -24, 1, 0)
+    TabButton.Text = ""
+    TabButton.ZIndex = 5
+    TabButton.Parent = TabFrame
+    
+    TabButton.MouseButton1Click:Connect(function()
+        switchToTab(tabIndex)
+    end)
+    
+    -- Close Tab Click (FIXED!)
+    CloseTabBtn.MouseButton1Click:Connect(function()
+        removeTab(tabIndex)
+    end)
+    
+    -- Hover effects
+    CloseTabBtn.MouseEnter:Connect(function()
+        CloseTabBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+        CloseTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end)
+    CloseTabBtn.MouseLeave:Connect(function()
+        CloseTabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+        CloseTabBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
+    end)
+    
+    TabContainer.CanvasSize = UDim2.new(0, TabListLayout.AbsoluteContentSize.X, 0, 24)
+    
+    return tabIndex
+end
+
+function switchToTab(index)
+    if not tabs[index] then return end
+    
+    if tabs[activeTabIndex] then
+        tabs[activeTabIndex].content = CodeBox.Text
+    end
+    
+    activeTabIndex = index
+    CodeBox.Text = tabs[index].content
+    
+    for i, child in ipairs(TabContainer:GetChildren()) do
+        if child:IsA("Frame") and child.Name:match("Tab") then
+            local tabNum = tonumber(child.Name:match("%d+"))
+            if tabNum == index then
+                child.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+            else
+                child.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+            end
+        end
+    end
+end
+
+function removeTab(index)
+    if #tabs <= 1 then 
+        print("Cannot remove last tab!")
+        return 
+    end
+    
+    print("Removing tab", index)
+    
+    table.remove(tabs, index)
+    
+    local tabFrame = TabContainer:FindFirstChild("Tab" .. index)
+    if tabFrame then
+        tabFrame:Destroy()
+    end
+    
+    for i, child in ipairs(TabContainer:GetChildren()) do
+        if child:IsA("Frame") and child.Name:match("Tab") then
+            local oldNum = tonumber(child.Name:match("%d+"))
+            if oldNum > index then
+                child.Name = "Tab" .. (oldNum - 1)
+            end
+        end
+    end
+    
+    if activeTabIndex >= index then
+        activeTabIndex = math.max(1, activeTabIndex - 1)
+    end
+    switchToTab(activeTabIndex)
+    
+    TabContainer.CanvasSize = UDim2.new(0, TabListLayout.AbsoluteContentSize.X, 0, 24)
+end
+
+createTab("script1.lua")
+switchToTab(1)
+
+-- 🎯 DRAGGABLE
+MakeDraggable(ToggleBtn, ToggleBtn)
+MakeDraggable(MainFrame, TabBar)
+
+-- 🎯 FUNCTIONALITY
+local isOpen = false
+local isToggling = false
+
+-- Toggle
+ToggleBtn.MouseButton1Click:Connect(function()
+    if isToggling then return end
+    isToggling = true
+    
+    isOpen = not isOpen
+    
+    if isOpen then
+        MainFrame.Visible = true
+        MainFrame.Size = UDim2.new(0, 0, 0, 0)
+        MainFrame.Position = UDim2.new(savedPosition.X.Scale, savedPosition.X.Offset + 240, savedPosition.Y.Scale, savedPosition.Y.Offset + 145)
+        
+        Tween(MainFrame, {
+            Size = UDim2.new(0, 480, 0, 290),
+            Position = savedPosition,
+            GroupTransparency = 0
+        }, 0.4, Enum.EasingStyle.Back)
+        
+        task.wait(0.4)
+    else
+        Tween(MainFrame, {
+            Size = UDim2.new(0, 0, 0, 0),
+            Position = UDim2.new(savedPosition.X.Scale, savedPosition.X.Offset + 240, savedPosition.Y.Scale, savedPosition.Y.Offset + 145),
+            GroupTransparency = 1
+        }, 0.3)
+        
+        task.wait(0.3)
+        MainFrame.Visible = false
+    end
+    
+    isToggling = false
+end)
+
+-- Minimize
+MinimizeBtn.MouseButton1Click:Connect(function()
+    if isToggling then return end
+    isToggling = true
+    
+    isOpen = false
+    Tween(MainFrame, {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(savedPosition.X.Scale, savedPosition.X.Offset + 240, savedPosition.Y.Scale, savedPosition.Y.Offset + 145),
+        GroupTransparency = 1
+    }, 0.3)
+    
+    task.wait(0.3)
+    MainFrame.Visible = false
+    isToggling = false
+end)
+
+-- Close
+CloseBtn.MouseButton1Click:Connect(function()
+    Tween(MainFrame, {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(savedPosition.X.Scale, savedPosition.X.Offset + 240, savedPosition.Y.Scale, savedPosition.Y.Offset + 145),
+        GroupTransparency = 1
+    }, 0.3)
+    
+    Tween(ToggleBtn, {
+        Size = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1
+    }, 0.3)
+    
+    task.wait(0.3)
+    LMG2L["ScreenGui"]:Destroy()
+end)
+
+-- Add Tab
+AddTab.MouseButton1Click:Connect(function()
+    local newIndex = createTab()
+    switchToTab(newIndex)
+    
+    Tween(AddTab, {BackgroundColor3 = Color3.fromRGB(60, 200, 80)}, 0.2)
+    task.wait(0.3)
+    Tween(AddTab, {BackgroundColor3 = Color3.fromRGB(30, 30, 35)}, 0.2)
+end)
+
+-- Execute
+ExecuteBtn.MouseButton1Click:Connect(function()
+    local code = CodeBox.Text
+    if code ~= "" then
+        tabs[activeTabIndex].content = CodeBox.Text
+        
+        ExecuteBtn.Text = "RUNNING..."
+        Tween(ExecuteBtn, {BackgroundColor3 = Color3.fromRGB(255, 200, 60)}, 0.2)
+        
+        task.wait(0.2)
+        
+        local success, err = pcall(function()
+            loadstring(code)()
+        end)
+        
+        if success then
+            ExecuteBtn.Text = "SUCCESS ✓"
+            Tween(ExecuteBtn, {BackgroundColor3 = Color3.fromRGB(60, 200, 80)}, 0.2)
+        else
+            ExecuteBtn.Text = "ERROR ✗"
+            Tween(ExecuteBtn, {BackgroundColor3 = Color3.fromRGB(220, 50, 50)}, 0.2)
+            warn("Error:", err)
+        end
+        
+        task.wait(1.5)
+        ExecuteBtn.Text = "EXECUTE"
+        Tween(ExecuteBtn, {BackgroundColor3 = Color3.fromRGB(30, 30, 35)}, 0.3)
+    end
+end)
+
+-- Clear
+ClearBtn.MouseButton1Click:Connect(function()
+    CodeBox.Text = ""
+    tabs[activeTabIndex].content = ""
+    
+    Tween(ClearBtn, {BackgroundColor3 = Color3.fromRGB(40, 40, 45)}, 0.1)
+    task.wait(0.1)
+    Tween(ClearBtn, {BackgroundColor3 = Color3.fromRGB(30, 30, 35)}, 0.2)
+end)
+
+-- Paste Clipboard (IMPROVED WITH BETTER METHODS!)
+PasteClipBtn.MouseButton1Click:Connect(function()
+    print("🔍 Attempting to get clipboard...")
+    local clipboard = nil
+    local methodUsed = "none"
+    
+    -- Method 1: setclipboard (most common)
+    if not clipboard then
+        local s1, r1 = pcall(function()
+            return setclipboard and type(setclipboard) == "function"
+        end)
+        if s1 and r1 then
+            local s2, r2 = pcall(function() return getclipboard() end)
+            if s2 and r2 and r2 ~= "" then
+                clipboard = r2
+                methodUsed = "getclipboard"
+            end
+        end
+    end
+    
+    -- Method 2: Clipboard module
+    if not clipboard then
+        local s1, Clipboard = pcall(function()
+            return game:GetService("UserInputService").Clipboard
+        end)
+        if s1 and Clipboard then
+            local s2, r2 = pcall(function() return Clipboard:GetText() end)
+            if s2 and r2 and r2 ~= "" then
+                clipboard = r2
+                methodUsed = "UserInputService.Clipboard"
+            end
+        end
+    end
+    
+    -- Method 3: readclipboard
+    if not clipboard then
+        local s1, r1 = pcall(function() return readclipboard() end)
+        if s1 and r1 and r1 ~= "" then
+            clipboard = r1
+            methodUsed = "readclipboard"
+        end
+    end
+    
+    -- Method 4: syn
+    if not clipboard then
+        local s1, r1 = pcall(function() return syn and syn.get_clipboard and syn.get_clipboard() end)
+        if s1 and r1 and r1 ~= "" then
+            clipboard = r1
+            methodUsed = "syn.get_clipboard"
+        end
+    end
+    
+    -- Method 5: Clipboard object
+    if not clipboard then
+        local s1, r1 = pcall(function() 
+            local cb = game:GetService("Clipboard")
+            return cb:Get()
+        end)
+        if s1 and r1 and r1 ~= "" then
+            clipboard = r1
+            methodUsed = "Clipboard:Get"
+        end
+    end
+    
+    if clipboard and clipboard ~= "" then
+        print("✅ Clipboard retrieved using:", methodUsed)
+        CodeBox.Text = clipboard
+        tabs[activeTabIndex].content = clipboard
+        
+        PasteClipBtn.Text = "PASTED ✓"
+        Tween(PasteClipBtn, {BackgroundColor3 = Color3.fromRGB(60, 200, 80)}, 0.2)
+        task.wait(1)
+        PasteClipBtn.Text = "PASTE CLIPBOARD"
+        Tween(PasteClipBtn, {BackgroundColor3 = Color3.fromRGB(30, 30, 35)}, 0.3)
+    else
+        print("❌ All clipboard methods failed")
+        PasteClipBtn.Text = "NO CLIPBOARD"
+        Tween(PasteClipBtn, {BackgroundColor3 = Color3.fromRGB(220, 50, 50)}, 0.2)
+        task.wait(1.2)
+        PasteClipBtn.Text = "PASTE CLIPBOARD"
+        Tween(PasteClipBtn, {BackgroundColor3 = Color3.fromRGB(30, 30, 35)}, 0.3)
+    end
+end)
+
+-- Save tab content
+CodeBox:GetPropertyChangedSignal("Text"):Connect(function()
+    if tabs[activeTabIndex] then
+        tabs[activeTabIndex].content = CodeBox.Text
+    end
+end)
+
+-- Hover Effects
+local function setupHover(button, hoverColor, normalColor)
+    button.MouseEnter:Connect(function()
+        Tween(button, {BackgroundColor3 = hoverColor}, 0.2)
+    end)
+    button.MouseLeave:Connect(function()
+        Tween(button, {BackgroundColor3 = normalColor}, 0.2)
+    end)
+end
+
+setupHover(ExecuteBtn, Color3.fromRGB(38, 38, 43), Color3.fromRGB(30, 30, 35))
+setupHover(ClearBtn, Color3.fromRGB(38, 38, 43), Color3.fromRGB(30, 30, 35))
+setupHover(PasteClipBtn, Color3.fromRGB(38, 38, 43), Color3.fromRGB(30, 30, 35))
+setupHover(MinimizeBtn, Color3.fromRGB(48, 48, 53), Color3.fromRGB(40, 40, 45))
+setupHover(CloseBtn, Color3.fromRGB(240, 70, 70), Color3.fromRGB(220, 50, 50))
+setupHover(AddTab, Color3.fromRGB(60, 200, 80), Color3.fromRGB(30, 30, 35))
+setupHover(ToggleBtn, Color3.fromRGB(25, 25, 30), Color3.fromRGB(18, 18, 22))
+
+-- Drag visual feedback
+TabBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        Tween(Stroke, {Thickness = 3}, 0.2)
+    end
+end)
+
+TabBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        Tween(Stroke, {Thickness = 2}, 0.2)
+    end
+end)
+
+print("✅ Simple X Executor Loaded!")
+print("📐 Size: 480x290")
+print("📜 SCRIPT HUB")
+print("📑 TAB SYSTEM - CLOSE BUTTON FIXED!")
+print("📋 PASTE CLIPBOARD - 5 METHODS!")
+print("💾 POSITION SAVED!")
+print("📍 Toggle: 55x55")
+
+return LMG2L["ScreenGui"], require
