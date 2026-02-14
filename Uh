@@ -6,7 +6,7 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - WRAPPER VERSION
+designed using localmaze gui creator - WRAPPER VERSION (FIXED)
 ]=]
 
 -- ✅ NOTIFICATION STACK (External Layer)
@@ -218,7 +218,6 @@ return function(config)
     -- EXTERNAL CONFIGURATION (Read-only modification)
     -- ==========================================
     
-    -- Apply text config
     if config.Text then
         LMG2L["NotificationText_7"].Text = config.Text
     end
@@ -237,14 +236,19 @@ return function(config)
     -- LIFECYCLE (Internal - Tidak Diubah)
     -- ==========================================
     
+    -- ✅ FIX: Get position SEBELUM add ke stack
+    local targetYOffset = NotificationStack:GetOffset()
+    
     notifData.Frame = LMG2L["Frame_2"]
     NotificationStack:Add(notifData)
     
-    LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, NotificationStack:GetOffset())
+    -- Start dari kanan (offscreen)
+    LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, targetYOffset)
     task.wait(0.1)
 
+    -- Slide in ke posisi final
     local slideIn = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Position = UDim2.new(1, -20, 1, NotificationStack:GetOffset())
+        Position = UDim2.new(1, -20, 1, targetYOffset)
     })
     slideIn:Play()
 
