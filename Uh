@@ -6,7 +6,7 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - PIXEL OFFSET FIX
+designed using localmaze gui creator - OFFSET DIRECTION FIX
 ]=]
 
 local TweenService = game:GetService("TweenService")
@@ -29,7 +29,6 @@ local Container = RootGui:FindFirstChild("Container")
 if not Container then
     Container = Instance.new("Frame")
     Container.Name = "Container"
-    -- ✅ FIX: Container fullscreen tanpa anchor!
     Container.AnchorPoint = Vector2.new(0, 0)
     Container.Position = UDim2.new(0, 0, 0, 0)
     Container.Size = UDim2.new(1, 0, 1, 0)
@@ -37,14 +36,25 @@ if not Container then
     Container.Parent = RootGui
 end
 
--- ✅ NOTIFICATION STACK
+-- ✅ NOTIFICATION STACK (FIXED DIRECTION!)
 local NotificationStack = {
     Active = {},
-    Spacing = 10
+    Spacing = 10,
+    Max = 5  -- ✅ Bonus: limit max notif
 }
 
 function NotificationStack:Add(notif)
     table.insert(self.Active, notif)
+    
+    -- ✅ Remove oldest if exceed max
+    if #self.Active > self.Max then
+        local old = self.Active[1]
+        if old and old.Frame then
+            old.Frame:Destroy()
+        end
+        table.remove(self.Active, 1)
+    end
+    
     self:UpdateAll(notif)
 end
 
@@ -58,35 +68,37 @@ function NotificationStack:Remove(notif)
     self:UpdateAll()
 end
 
+-- ✅ FIX 1: Loop dari belakang, offset += height
 function NotificationStack:GetOffsetFor(notif)
     local offset = 0
-    for i = 1, #self.Active do
+    for i = #self.Active, 1, -1 do  -- ✅ Dari terbaru ke terlama
         local n = self.Active[i]
         if n == notif then
             return offset
         end
         if n.IsAlive and n.Height then
-            offset = offset - n.Height - self.Spacing
+            offset = offset + n.Height + self.Spacing  -- ✅ PLUS, bukan minus!
         end
     end
     return 0
 end
 
--- ✅ FIX: Position pakai pixel offset dari kanan bawah!
+-- ✅ FIX 2: Position = -20 - offset (ke atas!)
 function NotificationStack:UpdateAll(skip)
     local offset = 0
-    for i = 1, #self.Active do
+    
+    for i = #self.Active, 1, -1 do  -- ✅ Dari terbaru ke terlama
         local notif = self.Active[i]
+        
         if notif.IsAlive and notif.Frame and notif.Height then
             
             if notif ~= skip then
-                -- ✅ PIXEL OFFSET: 1, -20, 1, -20 + offset
                 TweenService:Create(notif.Frame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
-                    Position = UDim2.new(1, -20, 1, -20 + offset)
+                    Position = UDim2.new(1, -20, 1, -20 - offset)  -- ✅ MINUS offset!
                 }):Play()
             end
             
-            offset = offset - notif.Height - self.Spacing
+            offset = offset + notif.Height + self.Spacing  -- ✅ PLUS!
         end
     end
 end
@@ -134,7 +146,7 @@ return function(config)
     LMG2L["Frame_2"] = Instance.new("Frame")
     LMG2L["Frame_2"]["BorderSizePixel"] = 0
     LMG2L["Frame_2"]["BackgroundColor3"] = Color3.fromRGB(35, 35, 40)
-    LMG2L["Frame_2"]["AnchorPoint"] = Vector2.new(1, 1)  -- ✅ Tetap anchor kanan bawah
+    LMG2L["Frame_2"]["AnchorPoint"] = Vector2.new(1, 1)
     LMG2L["Frame_2"]["Size"] = UDim2.new(0, 320, 0, 130)
     LMG2L["Frame_2"]["Position"] = UDim2.new(1, 0, 1, 0)
     LMG2L["Frame_2"]["BackgroundTransparency"] = 0.05
@@ -288,21 +300,21 @@ return function(config)
     
     local duration = config.Duration or 5
     
-    -- ✅ PIXEL OFFSET FIX LIFECYCLE
+    -- ✅ OFFSET DIRECTION FIX LIFECYCLE
     notifData.Frame = LMG2L["Frame_2"]
     
     NotificationStack:Add(notifData)
     
     local targetOffset = NotificationStack:GetOffsetFor(notifData)
     
-    -- ✅ FIX: Spawn pakai pixel offset!
-    LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, -20 + targetOffset)
+    -- ✅ FIX 3: -20 - targetOffset (ke atas!)
+    LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, -20 - targetOffset)
     
     task.wait(0.05)
     
-    -- ✅ FIX: Slide in pakai pixel offset!
+    -- ✅ FIX 4: -20 - targetOffset (ke atas!)
     local slideIn = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Position = UDim2.new(1, -20, 1, -20 + targetOffset)
+        Position = UDim2.new(1, -20, 1, -20 - targetOffset)
     })
     slideIn:Play()
 
