@@ -6,7 +6,7 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - SMOOTH + FIXED POSITION
+designed using localmaze gui creator - ERROR FIXED
 ]=]
 
 local TweenService = game:GetService("TweenService")
@@ -24,26 +24,24 @@ if not RootGui then
     RootGui.Parent = playerGui
 end
 
--- ✅ FIXED: Container di kanan bawah dengan proper size
 local Container = RootGui:FindFirstChild("Container")
 if not Container then
     Container = Instance.new("Frame")
     Container.Name = "Container"
-    Container.AnchorPoint = Vector2.new(1, 1)  -- Anchor kanan bawah
-    Container.Position = UDim2.new(1, -20, 1, -20)  -- Kanan bawah dengan padding
-    Container.Size = UDim2.new(0, 280, 0, 600)  -- Fixed width 280px, height 600px
+    Container.AnchorPoint = Vector2.new(1, 1)
+    Container.Position = UDim2.new(1, -20, 1, -20)
+    Container.Size = UDim2.new(0, 280, 0, 600)
     Container.BackgroundTransparency = 1
     Container.Parent = RootGui
     
+    -- ✅ FIXED: UIListLayout tanpa animation properties (auto-smooth)
     local listLayout = Instance.new("UIListLayout")
     listLayout.Name = "ListLayout"
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Padding = UDim.new(0, 15)
     listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-    listLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom  -- Stack dari bawah
-    listLayout.AnimationDuration = 0.4
-    listLayout.EasingStyle = Enum.EasingStyle.Quad
-    listLayout.EasingDirection = Enum.EasingDirection.Out
+    listLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+    -- ✅ NO AnimationDuration/EasingStyle - UIListLayout auto-animates!
     listLayout.Parent = Container
 end
 
@@ -77,7 +75,6 @@ end
 return function(config)
     config = config or {}
     
-    -- Spam prevention
     local currentTime = tick()
     if currentTime - LastNotificationTime < SpamPreventionDelay then
         task.wait(SpamPreventionDelay - (currentTime - LastNotificationTime))
@@ -97,7 +94,6 @@ return function(config)
     local isClosing = false
     local closeReason = nil
     
-    -- Cleanup system
     local Cleanup = {
         Tweens = {},
         Connections = {},
@@ -165,7 +161,7 @@ return function(config)
     LMG2L["Frame_2"]["Size"] = UDim2.new(0, finalWidth, 0, finalHeight)
     LMG2L["Frame_2"]["BackgroundTransparency"] = 1
     LMG2L["Frame_2"]["ClipsDescendants"] = true
-    LMG2L["Frame_2"]["LayoutOrder"] = -NotificationCount  -- Newest = bottom
+    LMG2L["Frame_2"]["LayoutOrder"] = -NotificationCount
     LMG2L["Frame_2"]["Parent"] = Container
 
     LMG2L["UICorner_3"] = Instance.new("UICorner", LMG2L["Frame_2"]);
@@ -270,23 +266,19 @@ return function(config)
             WasRemovedByLimit = (closeReason == "max_exceeded")
         }
         
-        -- ✅ SMOOTH animations - NO SHAKE!
         local fadeTime = 0.4
         local slideDistance = 50
         local scaleTarget = 0.8
         
         if closeReason == "user" then
-            -- User close - smooth slide
             fadeTime = 0.35
             slideDistance = 70
             scaleTarget = 0.7
         elseif closeReason == "expired" then
-            -- Auto expire - gentle fade
             fadeTime = 0.5
             slideDistance = 40
             scaleTarget = 0.85
         elseif closeReason == "max_exceeded" then
-            -- Pushed out - quick
             fadeTime = 0.3
             slideDistance = 80
             scaleTarget = 0.65
@@ -394,7 +386,6 @@ return function(config)
         duration = 5
     end
     
-    -- Remove oldest
     local allNotifs = {}
     for _, child in pairs(Container:GetChildren()) do
         if child:IsA("Frame") then
@@ -439,7 +430,6 @@ return function(config)
         table.remove(allNotifs, #allNotifs)
     end
     
-    -- ✅ SMOOTH spawn animation
     task.wait(0.05)
     
     local spawnTime = 0.5
@@ -497,7 +487,6 @@ return function(config)
     }))
     textTween:Play()
 
-    -- Progress timer
     local timerThread = coroutine.create(function()
         local startTime = tick()
 
