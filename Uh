@@ -6,7 +6,7 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - ABSOLUTE FINAL FIX
+designed using localmaze gui creator - TRUE FINAL FIX
 ]=]
 
 local TweenService = game:GetService("TweenService")
@@ -36,15 +36,16 @@ if not Container then
     Container.Parent = RootGui
 end
 
--- ✅ NOTIFICATION STACK (WITH GetOffsetFor!)
+-- ✅ NOTIFICATION STACK (WITH SKIP PARAMETER!)
 local NotificationStack = {
     Active = {},
     Spacing = 10
 }
 
+-- ✅ FIXED: Skip notif baru agar tidak ditarik balik!
 function NotificationStack:Add(notif)
     table.insert(self.Active, notif)
-    self:UpdateAll()
+    self:UpdateAll(notif)  -- ❗ Skip notif baru
 end
 
 function NotificationStack:Remove(notif)
@@ -54,10 +55,9 @@ function NotificationStack:Remove(notif)
             break
         end
     end
-    self:UpdateAll()
+    self:UpdateAll()  -- Tidak ada skip saat remove
 end
 
--- ✅ NEW: Get offset untuk notif spesifik!
 function NotificationStack:GetOffsetFor(notif)
     local offset = 0
     for i = 1, #self.Active do
@@ -72,14 +72,19 @@ function NotificationStack:GetOffsetFor(notif)
     return 0
 end
 
-function NotificationStack:UpdateAll()
+-- ✅ FIXED: UpdateAll dengan parameter skip!
+function NotificationStack:UpdateAll(skip)
     local offset = 0
     for i = 1, #self.Active do
         local notif = self.Active[i]
         if notif.IsAlive and notif.Frame and notif.Height then
-            TweenService:Create(notif.Frame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
-                Position = UDim2.new(1, 0, 1, offset)
-            }):Play()
+            
+            -- ✅ Skip notif baru (biar tidak ditarik balik!)
+            if notif ~= skip then
+                TweenService:Create(notif.Frame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
+                    Position = UDim2.new(1, 0, 1, offset)
+                }):Play()
+            end
             
             offset = offset - notif.Height - self.Spacing
         end
@@ -283,23 +288,23 @@ return function(config)
     
     local duration = config.Duration or 5
     
-    -- ✅ ABSOLUTE FINAL FIX LIFECYCLE
+    -- ✅ TRUE FINAL FIX LIFECYCLE
     notifData.Frame = LMG2L["Frame_2"]
     
-    -- 1. Add ke stack (geser notif lama ke atas)
+    -- 1. Add ke stack (notif lama naik, tapi notif baru di-skip!)
     NotificationStack:Add(notifData)
     
-    -- 2. ✅ Ambil offset BENAR untuk notif ini!
+    -- 2. Ambil offset yang benar untuk notif ini
     local targetOffset = NotificationStack:GetOffsetFor(notifData)
     
-    -- 3. ✅ Spawn dari kanan, tapi pakai offset Y yang BENAR!
+    -- 3. Spawn dari kanan dengan offset yang benar
     LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, targetOffset)
     
     task.wait(0.05)
     
-    -- 4. ✅ Slide in ke posisi stack yang BENAR (BUKAN hardcode 0!)
+    -- 4. ✅ Slide in ke posisi yang benar (TIDAK ditarik balik oleh UpdateAll!)
     local slideIn = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Position = UDim2.new(1, 0, 1, targetOffset)  -- ✅ PAKAI targetOffset!
+        Position = UDim2.new(1, 0, 1, targetOffset)
     })
     slideIn:Play()
 
