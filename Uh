@@ -6,7 +6,7 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - CORRECT ORDER FIX
+designed using localmaze gui creator - CORRECT SEQUENCE
 ]=]
 
 local TweenService = game:GetService("TweenService")
@@ -41,7 +41,6 @@ local NotificationStack = {
     Max = 5
 }
 
--- ✅ FIXED: Add TANPA auto-update!
 function NotificationStack:Add(notif)
     table.insert(self.Active, notif)
     
@@ -52,7 +51,6 @@ function NotificationStack:Add(notif)
         end
         table.remove(self.Active, 1)
     end
-    -- ❗ TIDAK panggil UpdateAll() di sini!
 end
 
 function NotificationStack:Remove(notif)
@@ -62,7 +60,7 @@ function NotificationStack:Remove(notif)
             break
         end
     end
-    self:UpdateAll()  -- Update saat remove OK
+    self:UpdateAll()
 end
 
 function NotificationStack:GetOffsetFor(notif)
@@ -79,7 +77,6 @@ function NotificationStack:GetOffsetFor(notif)
     return 0
 end
 
--- ✅ UpdateAll dengan skip parameter
 function NotificationStack:UpdateAll(skip)
     local offset = 0
     
@@ -296,26 +293,26 @@ return function(config)
     
     local duration = config.Duration or 5
     
-    -- ✅ CORRECT ORDER FIX!
+    -- ✅ URUTAN YANG BENAR (FINAL!)
     
-    -- 1. Set Frame
+    -- 1️⃣ Set Frame
     notifData.Frame = LMG2L["Frame_2"]
     
-    -- 2. Add ke stack (TANPA auto-update!)
+    -- 2️⃣ Add ke stack
     NotificationStack:Add(notifData)
     
-    -- 3. Hitung targetOffset
+    -- 3️⃣ Update notif LAMA dulu (notif lama naik)
+    NotificationStack:UpdateAll(notifData)
+    
+    -- 4️⃣ Hitung offset untuk notif BARU (setelah notif lama naik)
     local targetOffset = NotificationStack:GetOffsetFor(notifData)
     
-    -- 4. Spawn offscreen dengan Y offset yang BENAR
+    -- 5️⃣ Spawn notif baru di posisi offset yang BENAR
     LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, -20 - targetOffset)
-    
-    -- 5. Update notif LAMA (skip yang baru)
-    NotificationStack:UpdateAll(notifData)
     
     task.wait(0.05)
     
-    -- 6. Slide in notif baru
+    -- 6️⃣ Slide in notif baru
     local slideIn = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Position = UDim2.new(1, -20, 1, -20 - targetOffset)
     })
