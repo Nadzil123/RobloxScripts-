@@ -6,7 +6,7 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - UILISTLAYOUT SOLUTION
+designed using localmaze gui creator - SMOOTH ANIMATIONS
 ]=]
 
 local TweenService = game:GetService("TweenService")
@@ -24,7 +24,6 @@ if not RootGui then
     RootGui.Parent = playerGui
 end
 
--- ✅ CONTAINER dengan UIListLayout!
 local Container = RootGui:FindFirstChild("Container")
 if not Container then
     Container = Instance.new("Frame")
@@ -35,13 +34,12 @@ if not Container then
     Container.BackgroundTransparency = 1
     Container.Parent = RootGui
     
-    -- ✅ UIListLayout = Auto-stack!
     local listLayout = Instance.new("UIListLayout")
     listLayout.Name = "ListLayout"
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    listLayout.Padding = UDim.new(0, 15)  -- 15px spacing
+    listLayout.Padding = UDim.new(0, 15)
     listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
-    listLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom  -- ✅ Bottom-aligned!
+    listLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
     listLayout.Parent = Container
 end
 
@@ -88,9 +86,9 @@ return function(config)
     LMG2L["Frame_2"]["BorderSizePixel"] = 0
     LMG2L["Frame_2"]["BackgroundColor3"] = Color3.fromRGB(35, 35, 40)
     LMG2L["Frame_2"]["Size"] = UDim2.new(0, finalWidth, 0, finalHeight)
-    LMG2L["Frame_2"]["BackgroundTransparency"] = 0.05
+    LMG2L["Frame_2"]["BackgroundTransparency"] = 1  -- ✅ Start invisible
     LMG2L["Frame_2"]["ClipsDescendants"] = true
-    LMG2L["Frame_2"]["LayoutOrder"] = -NotificationCount  -- ✅ Newest = highest number = bottom!
+    LMG2L["Frame_2"]["LayoutOrder"] = -NotificationCount
     LMG2L["Frame_2"]["Parent"] = Container
 
     LMG2L["UICorner_3"] = Instance.new("UICorner", LMG2L["Frame_2"]);
@@ -102,7 +100,7 @@ return function(config)
     LMG2L["Shadow_9"]["Position"] = UDim2.new(0, -15, 0, -15);
     LMG2L["Shadow_9"]["Image"] = "rbxassetid://6014261993";
     LMG2L["Shadow_9"]["ImageColor3"] = Color3.fromRGB(0, 0, 0);
-    LMG2L["Shadow_9"]["ImageTransparency"] = 0.5;
+    LMG2L["Shadow_9"]["ImageTransparency"] = 1;  -- ✅ Start invisible
     LMG2L["Shadow_9"]["ScaleType"] = Enum.ScaleType.Slice;
     LMG2L["Shadow_9"]["SliceCenter"] = Rect.new(49, 49, 450, 450);
     LMG2L["Shadow_9"]["ZIndex"] = -1;
@@ -118,6 +116,8 @@ return function(config)
     LMG2L["NotificationLabel_4"]["Text"] = [[  Notification]];
     LMG2L["NotificationLabel_4"]["Name"] = [[NotificationLabel]];
     LMG2L["NotificationLabel_4"]["TextXAlignment"] = Enum.TextXAlignment.Left;
+    LMG2L["NotificationLabel_4"]["TextTransparency"] = 1;  -- ✅ Start invisible
+    LMG2L["NotificationLabel_4"]["BackgroundTransparency"] = 1;
 
     LMG2L["UICorner_5"] = Instance.new("UICorner", LMG2L["NotificationLabel_4"]);
     LMG2L["UICorner_5"]["CornerRadius"] = UDim.new(0, 10);
@@ -132,7 +132,8 @@ return function(config)
     LMG2L["TextButton_6"]["Text"] = [[×]];
     LMG2L["TextButton_6"]["AnchorPoint"] = Vector2.new(1, 0.5);
     LMG2L["TextButton_6"]["Position"] = UDim2.new(1, -8, 0.5, 0);
-    LMG2L["TextButton_6"]["BackgroundTransparency"] = 0;
+    LMG2L["TextButton_6"]["TextTransparency"] = 1;  -- ✅ Start invisible
+    LMG2L["TextButton_6"]["BackgroundTransparency"] = 1;
 
     local CloseCorner = Instance.new("UICorner", LMG2L["TextButton_6"]);
     CloseCorner.CornerRadius = UDim.new(1, 0);
@@ -143,12 +144,14 @@ return function(config)
     LMG2L["ProgressContainer_13"]["Size"] = UDim2.new(1, 0, 0, 3);
     LMG2L["ProgressContainer_13"]["Position"] = UDim2.new(0, 0, 0, 35);
     LMG2L["ProgressContainer_13"]["ClipsDescendants"] = true;
+    LMG2L["ProgressContainer_13"]["BackgroundTransparency"] = 1;  -- ✅ Start invisible
 
     LMG2L["ProgressBar_12"] = Instance.new("Frame", LMG2L["ProgressContainer_13"]);
     LMG2L["ProgressBar_12"]["BorderSizePixel"] = 0;
     LMG2L["ProgressBar_12"]["BackgroundColor3"] = Color3.fromRGB(50, 200, 100);
     LMG2L["ProgressBar_12"]["Size"] = UDim2.new(1, 0, 1, 0);
     LMG2L["ProgressBar_12"]["Position"] = UDim2.new(0, 0, 0, 0);
+    LMG2L["ProgressBar_12"]["BackgroundTransparency"] = 1;  -- ✅ Start invisible
 
     LMG2L["NotificationText_7"] = Instance.new("TextLabel", LMG2L["Frame_2"]);
     LMG2L["NotificationText_7"]["TextWrapped"] = true;
@@ -163,63 +166,79 @@ return function(config)
     LMG2L["NotificationText_7"]["Text"] = [[This is an example notification with improved UI design. It supports multiple lines and looks modern!]];
     LMG2L["NotificationText_7"]["Name"] = [[NotificationText]];
     LMG2L["NotificationText_7"]["Position"] = UDim2.new(0, 20, 0, 43);
+    LMG2L["NotificationText_7"]["TextTransparency"] = 1;  -- ✅ Start invisible
     LMG2L["NotificationText_7"]["BackgroundTransparency"] = 1;
 
     LMG2L["UICorner_8"] = Instance.new("UICorner", LMG2L["NotificationText_7"]);
     LMG2L["UICorner_8"]["CornerRadius"] = UDim.new(0, 6);
 
+    -- ✅ UIScale untuk scale animation
+    local uiScale = Instance.new("UIScale", LMG2L["Frame_2"])
+    uiScale.Scale = 0.7  -- Start small
+
     local function closeNotification()
         if isClosing then return end
         isClosing = true
         
-        -- Slide out ke kanan
-        local currentPos = LMG2L["Frame_2"].AbsolutePosition
-        local targetX = currentPos.X + LMG2L["Frame_2"].AbsoluteSize.X + 50
+        -- ✅ SMOOTH FADE OUT + SLIDE + SCALE
+        local fadeTime = 0.4
         
-        -- ✅ Fade out dengan transparensi
+        -- Scale down + slide right
+        TweenService:Create(uiScale, TweenInfo.new(fadeTime, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Scale = 0.7
+        }):Play()
+        
+        TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Position = UDim2.new(0, 50, 0, 0),
+            BackgroundTransparency = 1
+        }):Play()
+        
+        -- Fade out semua child
         for _, child in pairs(LMG2L["Frame_2"]:GetDescendants()) do
-            if child:IsA("TextLabel") or child:IsA("TextButton") then
-                TweenService:Create(child, TweenInfo.new(0.3), {
+            if child:IsA("TextLabel") then
+                TweenService:Create(child, TweenInfo.new(fadeTime), {
+                    TextTransparency = 1,
+                    BackgroundTransparency = 1
+                }):Play()
+            elseif child:IsA("TextButton") then
+                TweenService:Create(child, TweenInfo.new(fadeTime), {
                     TextTransparency = 1,
                     BackgroundTransparency = 1
                 }):Play()
             elseif child:IsA("Frame") then
-                TweenService:Create(child, TweenInfo.new(0.3), {
+                TweenService:Create(child, TweenInfo.new(fadeTime), {
                     BackgroundTransparency = 1
                 }):Play()
             elseif child:IsA("ImageLabel") then
-                TweenService:Create(child, TweenInfo.new(0.3), {
+                TweenService:Create(child, TweenInfo.new(fadeTime), {
                     ImageTransparency = 1
                 }):Play()
             end
         end
         
-        TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.3), {
-            BackgroundTransparency = 1
-        }):Play()
-        
-        task.wait(0.3)
+        task.wait(fadeTime)
         
         if config.OnClose then
             pcall(config.OnClose)
         end
         
         LMG2L["Frame_2"]:Destroy()
-        -- ✅ UIListLayout akan otomatis reposition notif lain!
     end
 
     LMG2L["TextButton_6"].MouseEnter:Connect(function()
         if not isClosing then
-            TweenService:Create(LMG2L["TextButton_6"], TweenInfo.new(0.2), {
-                BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+            TweenService:Create(LMG2L["TextButton_6"], TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+                BackgroundColor3 = Color3.fromRGB(255, 80, 80),
+                Size = UDim2.new(0, 30, 0, 30)  -- ✅ Slightly bigger on hover
             }):Play()
         end
     end)
 
     LMG2L["TextButton_6"].MouseLeave:Connect(function()
         if not isClosing then
-            TweenService:Create(LMG2L["TextButton_6"], TweenInfo.new(0.2), {
-                BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+            TweenService:Create(LMG2L["TextButton_6"], TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+                BackgroundColor3 = Color3.fromRGB(255, 60, 60),
+                Size = UDim2.new(0, 28, 0, 28)
             }):Play()
         end
     end)
@@ -248,26 +267,68 @@ return function(config)
         end
     end
     
-    -- Sort by LayoutOrder (highest = newest)
     table.sort(allNotifs, function(a, b)
         return a.LayoutOrder > b.LayoutOrder
     end)
     
-    -- Hapus yang terlama (index terakhir)
     while #allNotifs > MaxNotifications do
         local oldest = allNotifs[#allNotifs]
         oldest:Destroy()
         table.remove(allNotifs, #allNotifs)
     end
     
-    -- ✅ SPAWN ANIMATION - Slide in dari kanan
-    local startPos = LMG2L["Frame_2"].AbsolutePosition
-    LMG2L["Frame_2"].Position = UDim2.new(0, finalWidth + 50, 0, 0)
+    -- ✅ SMOOTH SPAWN ANIMATION - Scale + Fade + Slide
+    task.wait(0.05)
+    
+    local spawnTime = 0.5
+    
+    -- Slide from right + fade in
+    LMG2L["Frame_2"].Position = UDim2.new(0, 50, 0, 0)
+    
+    -- ✅ SCALE UP ANIMATION
+    TweenService:Create(uiScale, TweenInfo.new(spawnTime, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Scale = 1
+    }):Play()
+    
+    -- ✅ SLIDE + FADE IN
+    TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(spawnTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 0.05
+    }):Play()
+    
+    -- ✅ FADE IN semua child dengan stagger
+    task.wait(0.1)
+    
+    TweenService:Create(LMG2L["Shadow_9"], TweenInfo.new(0.3), {
+        ImageTransparency = 0.5
+    }):Play()
+    
+    TweenService:Create(LMG2L["NotificationLabel_4"], TweenInfo.new(0.3), {
+        TextTransparency = 0,
+        BackgroundTransparency = 0
+    }):Play()
     
     task.wait(0.05)
     
-    TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Position = UDim2.new(0, 0, 0, 0)
+    TweenService:Create(LMG2L["TextButton_6"], TweenInfo.new(0.3), {
+        TextTransparency = 0,
+        BackgroundTransparency = 0
+    }):Play()
+    
+    task.wait(0.05)
+    
+    TweenService:Create(LMG2L["ProgressContainer_13"], TweenInfo.new(0.3), {
+        BackgroundTransparency = 0
+    }):Play()
+    
+    TweenService:Create(LMG2L["ProgressBar_12"], TweenInfo.new(0.3), {
+        BackgroundTransparency = 0
+    }):Play()
+    
+    task.wait(0.05)
+    
+    TweenService:Create(LMG2L["NotificationText_7"], TweenInfo.new(0.3), {
+        TextTransparency = 0
     }):Play()
 
     local startTime = tick()
