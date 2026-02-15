@@ -6,7 +6,7 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - TRUE PIXEL OFFSET
+designed using localmaze gui creator - CORRECT ORDER FIX
 ]=]
 
 local TweenService = game:GetService("TweenService")
@@ -41,6 +41,7 @@ local NotificationStack = {
     Max = 5
 }
 
+-- ✅ FIXED: Add TANPA auto-update!
 function NotificationStack:Add(notif)
     table.insert(self.Active, notif)
     
@@ -51,8 +52,7 @@ function NotificationStack:Add(notif)
         end
         table.remove(self.Active, 1)
     end
-    
-    self:UpdateAll(notif)
+    -- ❗ TIDAK panggil UpdateAll() di sini!
 end
 
 function NotificationStack:Remove(notif)
@@ -62,10 +62,9 @@ function NotificationStack:Remove(notif)
             break
         end
     end
-    self:UpdateAll()
+    self:UpdateAll()  -- Update saat remove OK
 end
 
--- ✅ PIXEL OFFSET dari bottom (notif terbaru = 0, lama = accumulated height)
 function NotificationStack:GetOffsetFor(notif)
     local offset = 0
     for i = #self.Active, 1, -1 do
@@ -80,7 +79,7 @@ function NotificationStack:GetOffsetFor(notif)
     return 0
 end
 
--- ✅ TRUE PIXEL-BASED Y POSITIONING
+-- ✅ UpdateAll dengan skip parameter
 function NotificationStack:UpdateAll(skip)
     local offset = 0
     
@@ -90,11 +89,8 @@ function NotificationStack:UpdateAll(skip)
         if notif.IsAlive and notif.Frame and notif.Height then
             
             if notif ~= skip then
-                -- ✅ Position: kanan (scale 1), 20px dari kanan, bawah (scale 1), (20 + offset) px dari bawah
-                local targetPos = UDim2.new(1, -20, 1, -(20 + offset))
-                
                 TweenService:Create(notif.Frame, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
-                    Position = targetPos
+                    Position = UDim2.new(1, -20, 1, -20 - offset)
                 }):Play()
             end
             
@@ -300,20 +296,28 @@ return function(config)
     
     local duration = config.Duration or 5
     
+    -- ✅ CORRECT ORDER FIX!
+    
+    -- 1. Set Frame
     notifData.Frame = LMG2L["Frame_2"]
     
+    -- 2. Add ke stack (TANPA auto-update!)
     NotificationStack:Add(notifData)
     
+    -- 3. Hitung targetOffset
     local targetOffset = NotificationStack:GetOffsetFor(notifData)
     
-    -- ✅ SPAWN: kanan layar (offscreen), posisi Y yang tepat berdasarkan offset
-    LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, -(20 + targetOffset))
+    -- 4. Spawn offscreen dengan Y offset yang BENAR
+    LMG2L["Frame_2"].Position = UDim2.new(1, 50, 1, -20 - targetOffset)
+    
+    -- 5. Update notif LAMA (skip yang baru)
+    NotificationStack:UpdateAll(notifData)
     
     task.wait(0.05)
     
-    -- ✅ SLIDE IN: ke kanan layar (visible), posisi Y tetap sesuai offset
+    -- 6. Slide in notif baru
     local slideIn = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Position = UDim2.new(1, -20, 1, -(20 + targetOffset))
+        Position = UDim2.new(1, -20, 1, -20 - targetOffset)
     })
     slideIn:Play()
 
