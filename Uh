@@ -6,7 +6,7 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - WITH SPACING & AUTO-FILL
+designed using localmaze gui creator - PROPER BOTTOM-UP STACK
 ]=]
 
 local TweenService = game:GetService("TweenService")
@@ -30,12 +30,69 @@ if not Container then
     Container.Name = "Container"
     Container.AnchorPoint = Vector2.new(1, 1)
     Container.Position = UDim2.new(1, -20, 1, -20)
-    Container.Size = UDim2.new(0.3, 0, 0.6, 0)  -- ✅ Lebih tinggi biar muat lebih banyak
+    Container.Size = UDim2.new(0.3, 0, 0.6, 0)
     Container.BackgroundTransparency = 1
     Container.Parent = RootGui
 end
 
-local SPACING = 15  -- ✅ Spacing antar notif dalam pixel
+-- ✅ GLOBAL STACK MANAGER
+local NotificationStack = {
+    Active = {},
+    MaxNotifs = 5,
+    Spacing = 15
+}
+
+function NotificationStack:Add(notifFrame, height)
+    -- Tambah notif baru ke array (index 1 = terbaru)
+    table.insert(self.Active, 1, {Frame = notifFrame, Height = height})
+    
+    -- ✅ Hapus notif terlama kalau melebihi max
+    if #self.Active > self.MaxNotifs then
+        local oldest = self.Active[#self.Active]
+        if oldest and oldest.Frame then
+            -- Fade out notif terlama
+            TweenService:Create(oldest.Frame, TweenInfo.new(0.3), {
+                Position = UDim2.fromScale(-0.5, oldest.Frame.Position.Y.Scale)
+            }):Play()
+            task.wait(0.3)
+            oldest.Frame:Destroy()
+        end
+        table.remove(self.Active, #self.Active)
+    end
+    
+    self:Reposition()
+end
+
+function NotificationStack:Remove(notifFrame)
+    for i, notif in ipairs(self.Active) do
+        if notif.Frame == notifFrame then
+            table.remove(self.Active, i)
+            break
+        end
+    end
+    self:Reposition()
+end
+
+function NotificationStack:Reposition()
+    local containerHeight = Container.AbsoluteSize.Y
+    
+    -- ✅ Loop dari terbaru (index 1, di bawah) ke terlama (index n, di atas)
+    for i, notif in ipairs(self.Active) do
+        if notif.Frame and notif.Frame.Parent then
+            -- Hitung posisi Y: index 1 = 0, index 2 = height+spacing, dst
+            local yOffset = 0
+            for j = 1, i - 1 do
+                yOffset = yOffset + self.Active[j].Height + self.Spacing
+            end
+            
+            local yScale = yOffset / containerHeight
+            
+            TweenService:Create(notif.Frame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+                Position = UDim2.fromScale(0, yScale)
+            }):Play()
+        end
+    end
+end
 
 local function CalculateMinHeight(text, width)
     local padding = 20
@@ -74,7 +131,7 @@ return function(config)
     LMG2L["Frame_2"] = Instance.new("Frame")
     LMG2L["Frame_2"]["BorderSizePixel"] = 0
     LMG2L["Frame_2"]["BackgroundColor3"] = Color3.fromRGB(35, 35, 40)
-    LMG2L["Frame_2"]["AnchorPoint"] = Vector2.new(1, 1)
+    LMG2L["Frame_2"]["AnchorPoint"] = Vector2.new(1, 0)  -- ✅ Anchor kanan ATAS (bukan bawah)
     LMG2L["Frame_2"]["Size"] = UDim2.new(1, 0, 0, finalHeight)
     LMG2L["Frame_2"]["Position"] = UDim2.fromScale(0, 0)
     LMG2L["Frame_2"]["BackgroundTransparency"] = 0.05
@@ -160,14 +217,12 @@ return function(config)
         if isClosing then return end
         isClosing = true
         
-        -- ✅ Simpan posisi dan ukuran notif yang akan ditutup
-        local closingYScale = LMG2L["Frame_2"].Position.Y.Scale
-        local containerHeight = Container.AbsoluteSize.Y
-        local closedHeightScale = (finalHeight + SPACING) / containerHeight
+        -- ✅ Remove dari stack
+        NotificationStack:Remove(LMG2L["Frame_2"])
         
-        -- ✅ Fade out dan slide ke kanan
+        -- Fade out ke kiri
         local fadeOut = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Position = UDim2.new(0, -50, closingYScale, 0)
+            Position = UDim2.fromScale(-0.5, LMG2L["Frame_2"].Position.Y.Scale)
         })
 
         for _, child in pairs(LMG2L["Frame_2"]:GetDescendants()) do
@@ -189,19 +244,6 @@ return function(config)
 
         fadeOut:Play()
         fadeOut.Completed:Wait()
-        
-        -- ✅ TURUNKAN semua notif yang DI ATAS notif yang ditutup
-        for _, child in pairs(Container:GetChildren()) do
-            if child:IsA("Frame") and child ~= LMG2L["Frame_2"] then
-                -- Kalau notif ini di atas notif yang ditutup (Y scale lebih besar = lebih tinggi)
-                if child.Position.Y.Scale > closingYScale then
-                    local newYScale = child.Position.Y.Scale - closedHeightScale
-                    TweenService:Create(child, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-                        Position = UDim2.fromScale(child.Position.X.Scale, newYScale)
-                    }):Play()
-                end
-            end
-        end
         
         if config.OnClose then
             pcall(config.OnClose)
@@ -228,8 +270,6 @@ return function(config)
 
     LMG2L["TextButton_6"].MouseButton1Click:Connect(closeNotification)
 
-    LMG2L["Frame_2"].Size = UDim2.new(1, 0, 0, finalHeight)
-    
     if config.Text then
         LMG2L["NotificationText_7"].Text = config.Text
     end
@@ -244,27 +284,15 @@ return function(config)
     
     local duration = config.Duration or 5
     
-    -- ✅ STACKING DENGAN SPACING!
+    -- ✅ ADD KE STACK
+    NotificationStack:Add(LMG2L["Frame_2"], finalHeight)
     
-    local containerHeight = Container.AbsoluteSize.Y
-    local notifHeightScale = (finalHeight + SPACING) / containerHeight  -- ✅ Tambah spacing!
-    
-    -- Move existing notifications UP
-    for _, child in pairs(Container:GetChildren()) do
-        if child:IsA("Frame") and child ~= LMG2L["Frame_2"] then
-            local newYScale = child.Position.Y.Scale + notifHeightScale
-            TweenService:Create(child, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-                Position = UDim2.fromScale(child.Position.X.Scale, newYScale)
-            }):Play()
-        end
-    end
-    
-    -- Spawn offscreen (kiri)
-    LMG2L["Frame_2"].Position = UDim2.fromScale(-0.5, 0)
+    -- ✅ SPAWN dari kanan (offscreen)
+    LMG2L["Frame_2"].Position = UDim2.fromScale(0.5, 0)
     
     task.wait(0.05)
     
-    -- Slide in
+    -- ✅ SLIDE IN ke kiri (posisi 0,0 di bawah)
     local slideIn = TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Position = UDim2.fromScale(0, 0)
     })
