@@ -6,7 +6,7 @@
 88. ~8~ 88b  d88   .88.        j88.         88booo. 88b  d88 88   88    @uniquadev
  Y888P  ~Y8888P' Y888888P      888888D      Y88888P ~Y8888P' YP   YP  CONVERTER 
 
-designed using localmaze gui creator - SMOOTH REPOSITION ANIMATION
+designed using localmaze gui creator - POSITION FIXED
 ]=]
 
 local TweenService = game:GetService("TweenService")
@@ -24,7 +24,6 @@ if not RootGui then
     RootGui.Parent = playerGui
 end
 
--- ✅ NO UIListLayout - Manual positioning for smooth control
 local Container = RootGui:FindFirstChild("Container")
 if not Container then
     Container = Instance.new("Frame")
@@ -41,7 +40,6 @@ local MaxNotifications = 5
 local SpamPreventionDelay = 0.1
 local LastNotificationTime = 0
 
--- ✅ Global notification tracking
 local ActiveNotifications = {}
 
 local function CalculateMinHeight(text, width)
@@ -65,22 +63,20 @@ local function CalculateMinHeight(text, width)
     return minHeight
 end
 
--- ✅ Smooth reposition function
 local function RepositionAllNotifications(skipNotif, instant)
     local yOffset = 0
     local spacing = 15
     
-    -- Loop from newest (bottom) to oldest (top)
     for i = #ActiveNotifications, 1, -1 do
         local notifData = ActiveNotifications[i]
         
         if notifData and notifData.Frame and notifData.Frame.Parent and notifData ~= skipNotif then
+            -- ✅ Position from bottom: 1,1 = bottom right corner, offset up by yOffset
             local targetPos = UDim2.new(1, 0, 1, -(yOffset + notifData.Height))
             
             if instant then
                 notifData.Frame.Position = targetPos
             else
-                -- ✅ Smooth tween to new position
                 TweenService:Create(notifData.Frame, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                     Position = targetPos
                 }):Play()
@@ -182,9 +178,9 @@ return function(config)
     LMG2L["Frame_2"] = Instance.new("Frame")
     LMG2L["Frame_2"]["BorderSizePixel"] = 0
     LMG2L["Frame_2"]["BackgroundColor3"] = Color3.fromRGB(35, 35, 40)
-    LMG2L["Frame_2"]["AnchorPoint"] = Vector2.new(1, 1)  -- ✅ Anchor bottom-right
+    LMG2L["Frame_2"]["AnchorPoint"] = Vector2.new(1, 1)
     LMG2L["Frame_2"]["Size"] = UDim2.new(0, finalWidth, 0, finalHeight)
-    LMG2L["Frame_2"]["BackgroundTransparency"] = 1
+    LMG2L["Frame_2"]["BackgroundTransparency"] = 0.05  -- ✅ Visible from start
     LMG2L["Frame_2"]["ClipsDescendants"] = true
     LMG2L["Frame_2"]["Parent"] = Container
 
@@ -197,7 +193,7 @@ return function(config)
     LMG2L["Shadow_9"]["Position"] = UDim2.new(0, -15, 0, -15);
     LMG2L["Shadow_9"]["Image"] = "rbxassetid://6014261993";
     LMG2L["Shadow_9"]["ImageColor3"] = Color3.fromRGB(0, 0, 0);
-    LMG2L["Shadow_9"]["ImageTransparency"] = 1;
+    LMG2L["Shadow_9"]["ImageTransparency"] = 0.5;  -- ✅ Visible
     LMG2L["Shadow_9"]["ScaleType"] = Enum.ScaleType.Slice;
     LMG2L["Shadow_9"]["SliceCenter"] = Rect.new(49, 49, 450, 450);
     LMG2L["Shadow_9"]["ZIndex"] = -1;
@@ -213,8 +209,8 @@ return function(config)
     LMG2L["NotificationLabel_4"]["Text"] = [[  Notification]];
     LMG2L["NotificationLabel_4"]["Name"] = [[NotificationLabel]];
     LMG2L["NotificationLabel_4"]["TextXAlignment"] = Enum.TextXAlignment.Left;
-    LMG2L["NotificationLabel_4"]["TextTransparency"] = 1;
-    LMG2L["NotificationLabel_4"]["BackgroundTransparency"] = 1;
+    LMG2L["NotificationLabel_4"]["TextTransparency"] = 0;  -- ✅ Visible
+    LMG2L["NotificationLabel_4"]["BackgroundTransparency"] = 0;
 
     LMG2L["UICorner_5"] = Instance.new("UICorner", LMG2L["NotificationLabel_4"]);
     LMG2L["UICorner_5"]["CornerRadius"] = UDim.new(0, 10);
@@ -229,8 +225,8 @@ return function(config)
     LMG2L["TextButton_6"]["Text"] = [[×]];
     LMG2L["TextButton_6"]["AnchorPoint"] = Vector2.new(1, 0.5);
     LMG2L["TextButton_6"]["Position"] = UDim2.new(1, -8, 0.5, 0);
-    LMG2L["TextButton_6"]["TextTransparency"] = 1;
-    LMG2L["TextButton_6"]["BackgroundTransparency"] = 1;
+    LMG2L["TextButton_6"]["TextTransparency"] = 0;  -- ✅ Visible
+    LMG2L["TextButton_6"]["BackgroundTransparency"] = 0;
 
     local CloseCorner = Instance.new("UICorner", LMG2L["TextButton_6"]);
     CloseCorner.CornerRadius = UDim.new(1, 0);
@@ -241,14 +237,14 @@ return function(config)
     LMG2L["ProgressContainer_13"]["Size"] = UDim2.new(1, 0, 0, 3);
     LMG2L["ProgressContainer_13"]["Position"] = UDim2.new(0, 0, 0, 35);
     LMG2L["ProgressContainer_13"]["ClipsDescendants"] = true;
-    LMG2L["ProgressContainer_13"]["BackgroundTransparency"] = 1;
+    LMG2L["ProgressContainer_13"]["BackgroundTransparency"] = 0;  -- ✅ Visible
 
     LMG2L["ProgressBar_12"] = Instance.new("Frame", LMG2L["ProgressContainer_13"]);
     LMG2L["ProgressBar_12"]["BorderSizePixel"] = 0;
     LMG2L["ProgressBar_12"]["BackgroundColor3"] = Color3.fromRGB(50, 200, 100);
     LMG2L["ProgressBar_12"]["Size"] = UDim2.new(1, 0, 1, 0);
     LMG2L["ProgressBar_12"]["Position"] = UDim2.new(0, 0, 0, 0);
-    LMG2L["ProgressBar_12"]["BackgroundTransparency"] = 1;
+    LMG2L["ProgressBar_12"]["BackgroundTransparency"] = 0;  -- ✅ Visible
 
     LMG2L["NotificationText_7"] = Instance.new("TextLabel", LMG2L["Frame_2"]);
     LMG2L["NotificationText_7"]["TextWrapped"] = true;
@@ -263,14 +259,14 @@ return function(config)
     LMG2L["NotificationText_7"]["Text"] = [[This is an example notification with improved UI design. It supports multiple lines and looks modern!]];
     LMG2L["NotificationText_7"]["Name"] = [[NotificationText]];
     LMG2L["NotificationText_7"]["Position"] = UDim2.new(0, 20, 0, 43);
-    LMG2L["NotificationText_7"]["TextTransparency"] = 1;
+    LMG2L["NotificationText_7"]["TextTransparency"] = 0;  -- ✅ Visible
     LMG2L["NotificationText_7"]["BackgroundTransparency"] = 1;
 
     LMG2L["UICorner_8"] = Instance.new("UICorner", LMG2L["NotificationText_7"]);
     LMG2L["UICorner_8"]["CornerRadius"] = UDim.new(0, 6);
 
     local uiScale = Instance.new("UIScale", LMG2L["Frame_2"])
-    uiScale.Scale = 0.7
+    uiScale.Scale = 1  -- ✅ Full size visible
 
     notificationData.Frame = LMG2L["Frame_2"]
 
@@ -294,30 +290,17 @@ return function(config)
         }
         
         local fadeTime = 0.4
-        local slideDistance = 50
-        local scaleTarget = 0.8
-        
-        if closeReason == "user" then
-            fadeTime = 0.35
-            slideDistance = 70
-            scaleTarget = 0.7
-        elseif closeReason == "expired" then
-            fadeTime = 0.5
-            slideDistance = 40
-            scaleTarget = 0.85
-        elseif closeReason == "max_exceeded" then
-            fadeTime = 0.3
-            slideDistance = 80
-            scaleTarget = 0.65
-        end
+        local slideDistance = 70
+        local scaleTarget = 0.7
         
         local scaleTween = Cleanup:AddTween(TweenService:Create(uiScale, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
             Scale = scaleTarget
         }))
         scaleTween:Play()
         
+        local currentPos = LMG2L["Frame_2"].Position
         local slideTween = Cleanup:AddTween(TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Position = UDim2.new(1, slideDistance, LMG2L["Frame_2"].Position.Y.Scale, LMG2L["Frame_2"].Position.Y.Offset),
+            Position = UDim2.new(1, slideDistance, currentPos.Y.Scale, currentPos.Y.Offset),
             BackgroundTransparency = 1
         }))
         slideTween:Play()
@@ -348,7 +331,6 @@ return function(config)
             end
         end
         
-        -- ✅ Remove from active list
         for i, notif in ipairs(ActiveNotifications) do
             if notif == notificationData then
                 table.remove(ActiveNotifications, i)
@@ -356,7 +338,6 @@ return function(config)
             end
         end
         
-        -- ✅ SMOOTH reposition others BEFORE destroy
         RepositionAllNotifications(notificationData, false)
         
         task.wait(fadeTime)
@@ -424,106 +405,39 @@ return function(config)
         duration = 5
     end
     
-    -- ✅ Add to active list (newest at end)
     table.insert(ActiveNotifications, notificationData)
     
-    -- Remove oldest if exceeds max
     while #ActiveNotifications > MaxNotifications do
         local oldest = ActiveNotifications[1]
         if oldest and oldest.Frame then
-            local oldScale = oldest.Frame:FindFirstChildOfClass("UIScale")
-            if oldScale then
-                TweenService:Create(oldScale, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-                    Scale = 0.7
-                }):Play()
-            end
-            task.wait(0.3)
-            
-            if config.OnMaxExceeded then
-                local removedData = {
-                    Reason = "max_exceeded",
-                    NotificationId = oldest.Id,
-                    Title = oldest.Title,
-                    Text = oldest.Text,
-                    CreatedAt = oldest.CreatedAt,
-                    ClosedAt = tick(),
-                    LifeTime = tick() - oldest.CreatedAt,
-                    WasManualClose = false,
-                    WasAutoClose = false,
-                    WasRemovedByLimit = true
-                }
-                task.spawn(function()
-                    pcall(config.OnMaxExceeded, removedData)
-                end)
-            end
-            
             oldest.Frame:Destroy()
         end
         table.remove(ActiveNotifications, 1)
     end
     
-    -- ✅ Reposition ALL with new notif
-    RepositionAllNotifications(notificationData, true)
+    -- ✅ Calculate position for this notif
+    local yOffset = 0
+    for i = #ActiveNotifications, 1, -1 do
+        local notif = ActiveNotifications[i]
+        if notif ~= notificationData and notif.Height then
+            yOffset = yOffset + notif.Height + 15
+        end
+    end
     
-    -- ✅ Spawn animation from right
-    task.wait(0.05)
+    -- ✅ Set initial position (offscreen right, correct Y)
+    LMG2L["Frame_2"].Position = UDim2.new(1, 350, 1, -(yOffset + finalHeight))
     
-    local spawnTime = 0.5
-    
-    -- Start offscreen right
-    local startY = LMG2L["Frame_2"].Position.Y
-    LMG2L["Frame_2"].Position = UDim2.new(1, 350, startY.Scale, startY.Offset)
-    
-    local spawnScaleTween = Cleanup:AddTween(TweenService:Create(uiScale, TweenInfo.new(spawnTime, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Scale = 1
-    }))
-    spawnScaleTween:Play()
-    
-    local spawnSlideTween = Cleanup:AddTween(TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(spawnTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Position = UDim2.new(1, 0, startY.Scale, startY.Offset),
-        BackgroundTransparency = 0.05
-    }))
-    spawnSlideTween:Play()
-    
-    task.wait(0.1)
-    
-    local shadowTween = Cleanup:AddTween(TweenService:Create(LMG2L["Shadow_9"], TweenInfo.new(0.3), {
-        ImageTransparency = 0.5
-    }))
-    shadowTween:Play()
-    
-    local headerTween = Cleanup:AddTween(TweenService:Create(LMG2L["NotificationLabel_4"], TweenInfo.new(0.3), {
-        TextTransparency = 0,
-        BackgroundTransparency = 0
-    }))
-    headerTween:Play()
+    -- Reposition others
+    RepositionAllNotifications(notificationData, false)
     
     task.wait(0.05)
     
-    local closeTween = Cleanup:AddTween(TweenService:Create(LMG2L["TextButton_6"], TweenInfo.new(0.3), {
-        TextTransparency = 0,
-        BackgroundTransparency = 0
+    -- ✅ Slide in to final position
+    local finalPos = UDim2.new(1, 0, 1, -(yOffset + finalHeight))
+    local slideIn = Cleanup:AddTween(TweenService:Create(LMG2L["Frame_2"], TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = finalPos
     }))
-    closeTween:Play()
-    
-    task.wait(0.05)
-    
-    local progressContainerTween = Cleanup:AddTween(TweenService:Create(LMG2L["ProgressContainer_13"], TweenInfo.new(0.3), {
-        BackgroundTransparency = 0
-    }))
-    progressContainerTween:Play()
-    
-    local progressBarTween = Cleanup:AddTween(TweenService:Create(LMG2L["ProgressBar_12"], TweenInfo.new(0.3), {
-        BackgroundTransparency = 0
-    }))
-    progressBarTween:Play()
-    
-    task.wait(0.05)
-    
-    local textTween = Cleanup:AddTween(TweenService:Create(LMG2L["NotificationText_7"], TweenInfo.new(0.3), {
-        TextTransparency = 0
-    }))
-    textTween:Play()
+    slideIn:Play()
 
     local timerThread = coroutine.create(function()
         local startTime = tick()
