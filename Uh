@@ -41,17 +41,17 @@ if not Container then
     list.Parent = Container
 end
 
--- ✅ Easing constants (research: Quint = paling buttery untuk UI)
-local EASE_IN    = TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
-local EASE_OUT   = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-local EASE_GROW  = TweenInfo.new(0.4,  Enum.EasingStyle.Back,  Enum.EasingDirection.Out) -- pop!
-local EASE_SHRINK= TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-local EASE_FADE  = TweenInfo.new(0.2,  Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+-- ✅ FIXED: Semua pakai Quint.Out - NO Back.Out di wrapper = no loncat!
+local EASE_IN     = TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+local EASE_OUT    = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local EASE_GROW   = TweenInfo.new(0.4,  Enum.EasingStyle.Quint, Enum.EasingDirection.Out)  -- ✅ Quint bukan Back!
+local EASE_SHRINK = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local EASE_FADE   = TweenInfo.new(0.2,  Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
-local NotificationCount  = 0
-local MaxNotifications   = 5
-local SpamDelay          = 0.1
-local LastNotifTime      = 0
+local NotificationCount = 0
+local MaxNotifications  = 5
+local SpamDelay         = 0.1
+local LastNotifTime     = 0
 
 local function CalcHeight(text, width)
     local p = Instance.new("GetTextBoundsParams")
@@ -84,21 +84,22 @@ return function(config)
 
     -- ===== CLEANUP =====
     local Tweens, Conns, Threads = {}, {}, {}
-    local function tw(t)   table.insert(Tweens,   t);  return t end
-    local function con(c)  table.insert(Conns,    c);  return c end
-    local function thr(th) table.insert(Threads, th);  return th end
+    local function tw(t)   table.insert(Tweens,  t);  return t end
+    local function con(c)  table.insert(Conns,   c);  return c end
+    local function thr(th) table.insert(Threads, th); return th end
     local function cleanAll()
-        for _, t  in ipairs(Tweens)   do pcall(function() t:Cancel();     t:Destroy()         end) end
+        for _, t  in ipairs(Tweens)   do pcall(function() t:Cancel(); t:Destroy() end) end
         for _, c  in ipairs(Conns)    do if c.Connected then pcall(function() c:Disconnect() end) end end
-        for _, th in ipairs(Threads)  do if coroutine.status(th)=="suspended" then pcall(function() coroutine.close(th) end) end end
+        for _, th in ipairs(Threads)  do if coroutine.status(th) == "suspended" then pcall(function() coroutine.close(th) end) end end
         table.clear(Tweens); table.clear(Conns); table.clear(Threads)
     end
 
     local data = { Id = NotificationCount, Title = title, Text = text, CreatedAt = tick() }
 
     -- ===== WRAPPER =====
-    -- Wrapper size 0 → height (spawn) & height → 0 (close)
-    -- UIListLayout baca size ini → notif lain smooth naik/turun
+    -- Height 0 → full saat spawn (notif lain naik smooth)
+    -- Height full → 0 saat close (notif lain turun smooth)
+    -- Quint.Out = strictly 0→target, gak overshoot = NO LONCAT!
     local Wrapper = Instance.new("Frame")
     Wrapper.Name             = "Wrapper_"..NotificationCount
     Wrapper.BorderSizePixel  = 0
@@ -114,12 +115,12 @@ return function(config)
     Frame.BackgroundColor3   = Color3.fromRGB(35, 35, 40)
     Frame.BackgroundTransparency = 1
     Frame.Size               = UDim2.new(1, 0, 0, height)
-    Frame.Position           = UDim2.new(1, 80, 0, 0)  -- start offscreen kanan
+    Frame.Position           = UDim2.new(1, 80, 0, 0)
     Frame.ClipsDescendants   = true
     Frame.Parent             = Wrapper
     Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
 
-    -- ✅ UIScale untuk pop effect saat spawn
+    -- ✅ Back.Out hanya di UIScale - overshoot di sini aman (gak affect layout)
     local Scale = Instance.new("UIScale", Frame)
     Scale.Scale = 0.92
 
@@ -135,60 +136,60 @@ return function(config)
     Shadow.ZIndex        = -1
 
     local Header = Instance.new("TextLabel", Frame)
-    Header.BorderSizePixel = 0
-    Header.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+    Header.BorderSizePixel    = 0
+    Header.BackgroundColor3   = Color3.fromRGB(45, 45, 50)
     Header.BackgroundTransparency = 1
-    Header.TextColor3    = Color3.fromRGB(255, 255, 255)
-    Header.TextTransparency = 1
-    Header.TextSize      = 16
-    Header.FontFace      = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
-    Header.TextXAlignment = Enum.TextXAlignment.Left
-    Header.Text          = "  "..title
-    Header.Size          = UDim2.new(1, 0, 0, 35)
-    Header.Position      = UDim2.new(0, 0, 0, 0)
+    Header.TextColor3         = Color3.fromRGB(255, 255, 255)
+    Header.TextTransparency   = 1
+    Header.TextSize           = 16
+    Header.FontFace           = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+    Header.TextXAlignment     = Enum.TextXAlignment.Left
+    Header.Text               = "  "..title
+    Header.Size               = UDim2.new(1, 0, 0, 35)
+    Header.Position           = UDim2.new(0, 0, 0, 0)
     Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
 
     local CloseBtn = Instance.new("TextButton", Header)
-    CloseBtn.BorderSizePixel = 0
-    CloseBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+    CloseBtn.BorderSizePixel    = 0
+    CloseBtn.BackgroundColor3   = Color3.fromRGB(255, 60, 60)
     CloseBtn.BackgroundTransparency = 1
-    CloseBtn.TextColor3  = Color3.fromRGB(255, 255, 255)
-    CloseBtn.TextTransparency = 1
-    CloseBtn.TextSize    = 16
-    CloseBtn.FontFace    = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
-    CloseBtn.Text        = "×"
-    CloseBtn.Size        = UDim2.new(0, 28, 0, 28)
-    CloseBtn.AnchorPoint = Vector2.new(1, 0.5)
-    CloseBtn.Position    = UDim2.new(1, -8, 0.5, 0)
+    CloseBtn.TextColor3         = Color3.fromRGB(255, 255, 255)
+    CloseBtn.TextTransparency   = 1
+    CloseBtn.TextSize           = 16
+    CloseBtn.FontFace           = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+    CloseBtn.Text               = "×"
+    CloseBtn.Size               = UDim2.new(0, 28, 0, 28)
+    CloseBtn.AnchorPoint        = Vector2.new(1, 0.5)
+    CloseBtn.Position           = UDim2.new(1, -8, 0.5, 0)
     Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(1, 0)
 
     local ProgBG = Instance.new("Frame", Frame)
-    ProgBG.BorderSizePixel = 0
-    ProgBG.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    ProgBG.BorderSizePixel    = 0
+    ProgBG.BackgroundColor3   = Color3.fromRGB(60, 60, 65)
     ProgBG.BackgroundTransparency = 1
-    ProgBG.Size          = UDim2.new(1, 0, 0, 3)
-    ProgBG.Position      = UDim2.new(0, 0, 0, 35)
-    ProgBG.ClipsDescendants = true
+    ProgBG.Size               = UDim2.new(1, 0, 0, 3)
+    ProgBG.Position           = UDim2.new(0, 0, 0, 35)
+    ProgBG.ClipsDescendants   = true
 
     local ProgBar = Instance.new("Frame", ProgBG)
-    ProgBar.BorderSizePixel = 0
-    ProgBar.BackgroundColor3 = config.BarColor or Color3.fromRGB(50, 200, 100)
+    ProgBar.BorderSizePixel   = 0
+    ProgBar.BackgroundColor3  = config.BarColor or Color3.fromRGB(50, 200, 100)
     ProgBar.BackgroundTransparency = 1
-    ProgBar.Size         = UDim2.new(1, 0, 1, 0)
+    ProgBar.Size              = UDim2.new(1, 0, 1, 0)
 
     local Body = Instance.new("TextLabel", Frame)
-    Body.TextWrapped     = true
-    Body.BorderSizePixel = 0
+    Body.TextWrapped          = true
+    Body.BorderSizePixel      = 0
     Body.BackgroundTransparency = 1
-    Body.TextColor3      = Color3.fromRGB(220, 220, 220)
-    Body.TextTransparency = 1
-    Body.TextSize        = 14
-    Body.FontFace        = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
-    Body.TextXAlignment  = Enum.TextXAlignment.Left
-    Body.TextYAlignment  = Enum.TextYAlignment.Top
-    Body.Text            = text
-    Body.Size            = UDim2.new(1, -40, 1, -48)
-    Body.Position        = UDim2.new(0, 20, 0, 43)
+    Body.TextColor3           = Color3.fromRGB(220, 220, 220)
+    Body.TextTransparency     = 1
+    Body.TextSize             = 14
+    Body.FontFace             = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Regular, Enum.FontStyle.Normal)
+    Body.TextXAlignment       = Enum.TextXAlignment.Left
+    Body.TextYAlignment       = Enum.TextYAlignment.Top
+    Body.Text                 = text
+    Body.Size                 = UDim2.new(1, -40, 1, -48)
+    Body.Position             = UDim2.new(0, 20, 0, 43)
     Instance.new("UICorner", Body).CornerRadius = UDim.new(0, 6)
 
     -- ===== CLOSE =====
@@ -197,26 +198,26 @@ return function(config)
         isClosing = true
 
         local callbackData = {
-            Reason          = reason,
-            NotificationId  = data.Id,
-            Title           = data.Title,
-            Text            = data.Text,
-            CreatedAt       = data.CreatedAt,
-            ClosedAt        = tick(),
-            LifeTime        = tick() - data.CreatedAt,
-            WasManualClose  = reason == "user",
-            WasAutoClose    = reason == "expired",
+            Reason            = reason,
+            NotificationId    = data.Id,
+            Title             = data.Title,
+            Text              = data.Text,
+            CreatedAt         = data.CreatedAt,
+            ClosedAt          = tick(),
+            LifeTime          = tick() - data.CreatedAt,
+            WasManualClose    = reason == "user",
+            WasAutoClose      = reason == "expired",
             WasRemovedByLimit = reason == "max_exceeded"
         }
 
-        -- ✅ Scale sedikit turun sebelum slide (feel lebih natural)
+        -- ✅ Anticipation: scale turun sedikit sebelum slide
         tw(TweenService:Create(Scale, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
             Scale = 0.95
         })):Play()
 
         task.wait(0.1)
 
-        -- ✅ Slide kanan + fade (Quint In = accelerate keluar, terasa mantap)
+        -- ✅ Frame slide kanan + fade (Quint.In = accelerate keluar, terasa snappy)
         tw(TweenService:Create(Frame, EASE_IN, {
             Position = UDim2.new(1, 80, 0, 0),
             BackgroundTransparency = 1
@@ -236,7 +237,7 @@ return function(config)
 
         task.wait(0.25)
 
-        -- ✅ Wrapper shrink → 0 (Quint Out = decelerate = notif lain turun smooth)
+        -- ✅ Wrapper shrink → 0 (Quint.Out = notif lain turun smooth, NO LONCAT!)
         tw(TweenService:Create(Wrapper, EASE_SHRINK, {
             Size = UDim2.new(0, width, 0, 0)
         })):Play()
@@ -247,9 +248,9 @@ return function(config)
         if Wrapper and Wrapper.Parent then Wrapper:Destroy() end
 
         task.spawn(function()
-            if reason == "user"         and config.OnUserClose  then pcall(config.OnUserClose,  callbackData) end
-            if reason == "expired"      and config.OnExpire     then pcall(config.OnExpire,      callbackData) end
-            if reason == "max_exceeded" and config.OnMaxExceeded then pcall(config.OnMaxExceeded, callbackData) end
+            if reason == "user"         and config.OnUserClose   then pcall(config.OnUserClose,   callbackData) end
+            if reason == "expired"      and config.OnExpire       then pcall(config.OnExpire,       callbackData) end
+            if reason == "max_exceeded" and config.OnMaxExceeded  then pcall(config.OnMaxExceeded,  callbackData) end
             if config.OnClose then pcall(config.OnClose, callbackData) end
         end)
     end
@@ -292,47 +293,38 @@ return function(config)
         end
     end
 
-    -- ===== SPAWN ANIMATION =====
+    -- ===== SPAWN =====
     task.wait(0.05)
 
-    -- ✅ Wrapper grow (Back.Out = sedikit overshoot → feels alive!)
+    -- ✅ Wrapper grow dengan Quint.Out = no overshoot = no loncat!
     tw(TweenService:Create(Wrapper, EASE_GROW, {
         Size = UDim2.new(0, width, 0, height)
     })):Play()
 
-    -- ✅ Frame slide in dari kanan (Quint Out = decelerate = smooth landing)
+    -- ✅ Frame slide in dari kanan
     tw(TweenService:Create(Frame, EASE_OUT, {
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 0.05
     })):Play()
 
-    -- ✅ Scale pop (0.92 → 1.0 dengan Back.Out = subtle pop)
+    -- ✅ UIScale pop - Back.Out di sini aman, gak affect layout!
     tw(TweenService:Create(Scale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Scale = 1
     })):Play()
 
-    -- ✅ Staggered fade in (elements muncul satu per satu, terasa polished)
     task.wait(0.1)
-    tw(TweenService:Create(Shadow, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-        ImageTransparency = 0.5
-    })):Play()
-    tw(TweenService:Create(Header, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-        TextTransparency = 0, BackgroundTransparency = 0
-    })):Play()
+    tw(TweenService:Create(Shadow, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { ImageTransparency = 0.5 })):Play()
+    tw(TweenService:Create(Header, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { TextTransparency = 0, BackgroundTransparency = 0 })):Play()
 
     task.wait(0.04)
-    tw(TweenService:Create(CloseBtn, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-        TextTransparency = 0, BackgroundTransparency = 0
-    })):Play()
+    tw(TweenService:Create(CloseBtn, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { TextTransparency = 0, BackgroundTransparency = 0 })):Play()
 
     task.wait(0.04)
     tw(TweenService:Create(ProgBG,  TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { BackgroundTransparency = 0 })):Play()
     tw(TweenService:Create(ProgBar, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { BackgroundTransparency = 0 })):Play()
 
     task.wait(0.04)
-    tw(TweenService:Create(Body, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-        TextTransparency = 0
-    })):Play()
+    tw(TweenService:Create(Body, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { TextTransparency = 0 })):Play()
 
     -- ===== PROGRESS + EXPIRE =====
     local timerThread = coroutine.create(function()
