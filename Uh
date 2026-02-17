@@ -41,10 +41,10 @@ if not Container then
     list.Parent = Container
 end
 
--- ✅ FIXED: Semua pakai Quint.Out - NO Back.Out di wrapper = no loncat!
+-- ✅ Easing: Quint untuk smooth, Back.Out hanya di UIScale
 local EASE_IN     = TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
 local EASE_OUT    = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-local EASE_GROW   = TweenInfo.new(0.4,  Enum.EasingStyle.Quint, Enum.EasingDirection.Out)  -- ✅ Quint bukan Back!
+local EASE_GROW   = TweenInfo.new(0.4,  Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local EASE_SHRINK = TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local EASE_FADE   = TweenInfo.new(0.2,  Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
@@ -97,9 +97,6 @@ return function(config)
     local data = { Id = NotificationCount, Title = title, Text = text, CreatedAt = tick() }
 
     -- ===== WRAPPER =====
-    -- Height 0 → full saat spawn (notif lain naik smooth)
-    -- Height full → 0 saat close (notif lain turun smooth)
-    -- Quint.Out = strictly 0→target, gak overshoot = NO LONCAT!
     local Wrapper = Instance.new("Frame")
     Wrapper.Name             = "Wrapper_"..NotificationCount
     Wrapper.BorderSizePixel  = 0
@@ -120,7 +117,6 @@ return function(config)
     Frame.Parent             = Wrapper
     Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
 
-    -- ✅ Back.Out hanya di UIScale - overshoot di sini aman (gak affect layout)
     local Scale = Instance.new("UIScale", Frame)
     Scale.Scale = 0.92
 
@@ -210,14 +206,14 @@ return function(config)
             WasRemovedByLimit = reason == "max_exceeded"
         }
 
-        -- ✅ Anticipation: scale turun sedikit sebelum slide
+        -- Anticipation
         tw(TweenService:Create(Scale, TweenInfo.new(0.15, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
             Scale = 0.95
         })):Play()
 
         task.wait(0.1)
 
-        -- ✅ Frame slide kanan + fade (Quint.In = accelerate keluar, terasa snappy)
+        -- Frame slide kanan + fade
         tw(TweenService:Create(Frame, EASE_IN, {
             Position = UDim2.new(1, 80, 0, 0),
             BackgroundTransparency = 1
@@ -237,12 +233,12 @@ return function(config)
 
         task.wait(0.25)
 
-        -- ✅ Wrapper shrink → 0 (Quint.Out = notif lain turun smooth, NO LONCAT!)
-        tw(TweenService:Create(Wrapper, EASE_SHRINK, {
+        -- ✅ FIXED: Completed:Wait() pastiin wrapper BENAR-BENAR di 0 sebelum destroy!
+        local shrinkTween = tw(TweenService:Create(Wrapper, EASE_SHRINK, {
             Size = UDim2.new(0, width, 0, 0)
-        })):Play()
-
-        task.wait(0.35)
+        }))
+        shrinkTween:Play()
+        shrinkTween.Completed:Wait()
 
         cleanAll()
         if Wrapper and Wrapper.Parent then Wrapper:Destroy() end
@@ -296,22 +292,23 @@ return function(config)
     -- ===== SPAWN =====
     task.wait(0.05)
 
-    -- ✅ Wrapper grow dengan Quint.Out = no overshoot = no loncat!
+    -- Wrapper grow
     tw(TweenService:Create(Wrapper, EASE_GROW, {
         Size = UDim2.new(0, width, 0, height)
     })):Play()
 
-    -- ✅ Frame slide in dari kanan
+    -- Frame slide in
     tw(TweenService:Create(Frame, EASE_OUT, {
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 0.05
     })):Play()
 
-    -- ✅ UIScale pop - Back.Out di sini aman, gak affect layout!
+    -- Scale pop
     tw(TweenService:Create(Scale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Scale = 1
     })):Play()
 
+    -- Staggered fade in
     task.wait(0.1)
     tw(TweenService:Create(Shadow, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { ImageTransparency = 0.5 })):Play()
     tw(TweenService:Create(Header, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), { TextTransparency = 0, BackgroundTransparency = 0 })):Play()
